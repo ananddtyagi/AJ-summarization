@@ -1,0 +1,13 @@
+Plan of action for the initial baseline extractive model
+
+1. Word embeddings
+  Start with BERT word embeddings
+
+2. Sentence embeddings
+  There seem to be a few ways to do this. Google's universal sentence encoder is one I could use but I am still looking into a couple of other methods.
+
+3. Sentence similarity
+  Start by using simple cosine similarity. I think you can directly do sentence similarity using BERT, and so with that, I was thinking of having each sentence match with each other sentence, and then just summing up the similarity measures, and using that for the ranking.
+
+4. Summarization
+  Now just take the rankings and pick the first 1 or 2 sentences to make the summary.
