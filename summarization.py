@@ -6,8 +6,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import tensorflow_hub as hub
 
+import jsonlines
 
 def extract_sentences():
+    with jsonlines.open('input.jsonl') as reader:
+        for obj in reader:
+            print(obj)
+            break
     return
 
 def clean_sentences():
@@ -29,6 +34,7 @@ def summarization():
     return
 
 def main():
+    extract_sentences()
     return
 
 main()
