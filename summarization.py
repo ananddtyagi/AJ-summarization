@@ -7,13 +7,22 @@ import tensorflow as tf
 import tensorflow_hub as hub
 
 import jsonlines
+from nltk import sent_tokenize, word_tokenize
 
 def extract_sentences():
-    with jsonlines.open('input.jsonl') as reader:
-        for obj in reader:
-            print(obj)
-            break
-    return
+    # with jsonlines.open('dev.jsonl') as reader:
+    #     i = 0
+    #     for obj in reader:
+    #         print("text ", obj['text'], "\n")
+    #         print("summary", obj['summary'], "\n")
+    #         if i == 2:
+    #             break
+    #         i = i+1
+    with open('article_ex.txt') as file:
+        sentences = sent_tokenize(file.read())
+    for sentence in sentences:
+        sentence = "".join(word_tokenize(sentence))
+    return sentences
 
 def clean_sentences():
     return
@@ -34,7 +43,7 @@ def summarization():
     return
 
 def main():
-    extract_sentences()
+    sentences = extract_sentences()
     return
 
 main()
