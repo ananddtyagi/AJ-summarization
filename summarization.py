@@ -1,7 +1,7 @@
+#code written by Anand Tyagi
 
-#removes tf debugging
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
 
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -56,7 +56,7 @@ def order(scores, sentences):
     tup_scores = []
     for i, score in enumerate(scores):
         tup_scores.append((score, i))
-        
+
     ordered_scores = sorted(tup_scores, reverse = True, key=lambda s: s[0]) #sorted in descending order by the score
     ordered = []
     for score in ordered_scores:
