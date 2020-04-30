@@ -56,8 +56,8 @@ def main(ref_sentence, sys_sentence):
     #print(str(recall) + "\t" + str(precision) + "\t" + str(f_mes))
 
     return {
-        "recall" : str(recall),
-        "precision" : str(precision), 
-        "f-measure" : str(f_mes)
+        "recall" : recall,
+        "precision" : precision, 
+        "f-measure" : f_mes
     }
 
