@@ -3,6 +3,8 @@
 import os
 import json
 import nltk
+import ast #for reading from debug file
+
 # nltk.download('stopwords')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
 
@@ -13,7 +15,7 @@ import tensorflow_hub as hub
 from nltk import sent_tokenize, word_tokenize
 
 def extract():
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./dev-stats.jsonl', "r")
 
     articles = []
     i = 0
@@ -25,7 +27,7 @@ def extract():
 
         if i == 2:
             break
-        
+
         i+=1
 
     return articles
@@ -49,7 +51,7 @@ def clean(articles):
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
             sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces, I (Anand) added this step
             cleaned_sentences.append(sentence)
-        
+
         cleaned_articles.append(cleaned_sentences)
 
     return cleaned_articles
@@ -58,15 +60,12 @@ def sentence_to_embeddings(articles):
     embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
     embeddings = []
-
+    single_embedding = []
     i = 0
 
     print("Before embeding step")
     for sentences in articles:
-        single_embedding = embed(sentences)
-
-        embeddings.append(single_embedding)
-
+        embeddings.append(embed(sentences))
         print('Embedding ', i)
         i+=1
 
@@ -107,7 +106,7 @@ def order(scores, sentences):
     return ordered
 
 def order_embeds_in_list(score_list, article_list):
-   
+
     ordered_list = []
 
     for i in range(0, len(score_list)):
@@ -133,7 +132,7 @@ def get_results(ordered_sentences_list, length):
         results_summary_list.append(summary)
 
     return results_summary_list
-        
+
 def debug_logger(process, x):
     print(process)
     file = open('output.txt', 'w')
@@ -144,14 +143,13 @@ def debug_logger(process, x):
     return
 
 def write_results_file(summary_list):
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./dev-stats.jsonl', "r")
 
     #Take the answer list
     reference_list = []
 
     for line in file:
         json_article = json.loads(line)
-
         reference_summary = json_article["summary"] #extract all sentences from article
         reference_list.append(reference_summary)
 
@@ -159,7 +157,7 @@ def write_results_file(summary_list):
 
     final_list = []
     for i in range(0, len(summary_list)):
-        
+
         obj = {
             "reference" : reference_list[i],
             "system": summary_list[i]
@@ -175,19 +173,28 @@ def write_results_file(summary_list):
 def main():
     articles = []
 
+    print('extract')
     articles = extract()
-    # debug_logger('sentences', articles)
+    debug_logger('articles', articles)
+    print('clean')
     cleaned_articles = clean(articles)
-    #debug_logger('cleaned_sentences', cleaned_articles)
+    debug_logger('cleaned_articles', cleaned_articles)
+    print('sen2emb')
     embeddings = sentence_to_embeddings(cleaned_articles)
-    #debug_logger('embeddings', embeddings)
+    debug_logger('embeddings', embeddings)
+    print('simscore')
     articles_similarity = similarity_score(embeddings)
-    #debug_logger('similarity', similarity)
+    debug_logger('articles_similarity', articles_similarity)
+    print('orederembilist')
     ordered_sentences_list = order_embeds_in_list(articles_similarity, articles)
-    #debug_logger('ordered_sentences', ordered_sentences)
+    debug_logger('ordered_sentences_list', ordered_sentences_list)
+
+    # file = open('output.txt','r')
+    # for line in file:
+    #     ordered_sentences_list = ast.literal_eval(line)
 
     summary_length = 1
-
+    print('getresults')
     summary_list = get_results(ordered_sentences_list, summary_length)
 
     write_results_file(summary_list)
@@ -195,7 +202,7 @@ def main():
     # print(summary_list[0])
 
     # print(len(summary_list))
-    
+
 
 main()
 
