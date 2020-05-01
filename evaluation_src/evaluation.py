@@ -1,42 +1,90 @@
 import rouge_l
 import json
+from rouge import Rouge
+
+rouge = Rouge()
 
 def read_input():
     file = open("../data.txt", "r")
 
-    list_articles = []
-    for line in file:
-        json_article = json.loads(line)
+    list_articles = json.load(file)
 
-        list_articles.append(json_article)
+    # list_articles = []
+    # for line in file:
+    #     json_article = json.loads(line)
+
+    #     list_articles.append(json_article)
+
+
 
     return list_articles
 
 def aggregate_scores(list_articles):
 
-    recall_total = 0
-    precision_total = 0
-    f_measure_total = 0
+    rouge_1 = {
+        "r": 0,
+        "p": 0,
+        "f": 0
+    }
+
+    rouge_2 = {
+        "r": 0,
+        "p": 0,
+        "f": 0
+    }
+
+    rouge_l = {
+        "r": 0,
+        "p": 0,
+        "f": 0
+    }
 
     for obj in list_articles:
-        reference_sum = obj[0]["reference"]
-        system_sum = obj[0]["system"]
+        
+        reference_sum = obj["reference"]
+        system_sum = obj["system"]
 
-        #Reference first, then system
-        result = rouge_l.main(reference_sum, system_sum)
+        #System first, then reference
+        result = rouge.get_scores(system_sum, reference_sum)[0]
 
-        recall_total += result["recall"]
-        precision_total += result["precision"]
-        f_measure_total += result["f-measure"]
+        rouge_1["r"] += result["rouge-1"]["r"]
+        rouge_1["p"] += result["rouge-1"]["p"]
+        rouge_1["f"] += result["rouge-1"]["f"]
 
-    print("Recall: ", recall_total/len(list_articles))
-    print("Precision: ", precision_total/len(list_articles))
-    print("F-measure: ", f_measure_total/len(list_articles))
+        rouge_2["r"] += result["rouge-2"]["r"]
+        rouge_2["p"] += result["rouge-2"]["p"]
+        rouge_2["f"] += result["rouge-2"]["f"]
+
+        rouge_l["r"] += result["rouge-l"]["r"]
+        rouge_l["p"] += result["rouge-l"]["p"]
+        rouge_l["f"] += result["rouge-l"]["f"]
+
+    len_article = len(list_articles)
+
+    rouge_1["r"] = rouge_1["r"]/len_article
+    rouge_1["p"] = rouge_1["p"]/len_article
+    rouge_1["f"] = rouge_1["f"]/len_article
+
+    rouge_2["r"] = rouge_2["r"]/len_article
+    rouge_2["p"] = rouge_2["p"]/len_article
+    rouge_2["f"] = rouge_2["f"]/len_article
+
+    rouge_l["r"] = rouge_l["r"]/len_article
+    rouge_l["p"] = rouge_l["p"]/len_article
+    rouge_l["f"] = rouge_l["f"]/len_article
+    
+    print("Rouge-1")
+    print(rouge_1)
+    print("\n")
+    print("Rouge-2")
+    print(rouge_2)
+    print("\n")
+    print("Rouge-l")
+    print(rouge_l)
 
 def main():
     list_articles = read_input()
 
-    #print(list_articles)
     aggregate_scores(list_articles)
 
 main()
