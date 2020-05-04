@@ -5,7 +5,7 @@ from rouge import Rouge
 rouge = Rouge()
 
 def read_input():
-    file = open("../data.txt", "r")
+    file = open("../output_data/data.txt", "r")
 
     list_articles = json.load(file)
 
@@ -40,7 +40,7 @@ def aggregate_scores(list_articles):
     }
 
     for obj in list_articles:
-        
+
         reference_sum = obj["reference"]
         system_sum = obj["system"]
 
@@ -72,7 +72,7 @@ def aggregate_scores(list_articles):
     rouge_l["r"] = rouge_l["r"]/len_article
     rouge_l["p"] = rouge_l["p"]/len_article
     rouge_l["f"] = rouge_l["f"]/len_article
-    
+
     print("Rouge-1")
     print(rouge_1)
     print("\n")

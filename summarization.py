@@ -6,6 +6,9 @@ import nltk
 import ast #for reading from debug file
 import sys
 import pickle
+# from progress.bar import IncrementalBar
+from tqdm.auto import trange
+
 # nltk.download('stopwords')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
 
@@ -78,31 +81,18 @@ def similarity_score(embeddings):
     articles_similarity = []
 
     print("Before Similarity")
-    i = 0
-    j = 0
-    for embeding in embeddings:
-        similarity = []
-        for i in range(len(embeding)):
-            similarity = [0]*len(embeding)
-            for j in range(i, len(embeding)):
 
-                print('calculating similarity')
+    data_tqdm = trange(len(embeddings)), desc="Data Progress")
+    for e in data_tqdm:
+        data_tqdm.set_description("Data Progress (article %i)", e)
+        similarity = []
+        embedding = embeddings[e]
+        for i in trange(len(embeding)), desc='Article Progress'):
+            similarity = [0]*len(embeding)
+
+            for j in range(i, len(embeding)):
                 similarity[i] += cosine_similarity([embeding[i]], [embeding[j]])[0][0]
                 similarity[j] += cosine_similarity([embeding[i]], [embeding[j]])[0][0]
-
-                sys.stdout.write('\r')
-
-                sys.stdout.write('%d percent' % (j))
-                sys.stdout.flush()
-            print()
-
-        if j < i * 100 / len(embed):
-            j = i * 100 / len(embed) + 1
-            sys.stdout.write('\r')
-
-            sys.stdout.write('%d percent' % (j))
-            sys.stdout.flush()
-        i+=1
 
         articles_similarity.append(similarity)
 
@@ -157,7 +147,7 @@ def debug_logger(process, x):
     return
 
 def write_results_file(summary_list):
-    file = open('./dev.jsonl', "r")
+    file = open('./input_data/dev.jsonl', "r")
 
     #Take the answer list
     reference_list = []
@@ -228,8 +218,8 @@ def main():
     print('orederembilist')
     if os.path.exists('./logs/ordered_sentences_list.txt'):
         print('previously completed')
-        with open('./logs/ordered_sentences_list.txt', 'r') as file:
-            ordered_sentences_list = ast.literal_eval(file.readline())
+        with open('./logs/ordered_sentences_list.txt', 'rb') as file:
+            ordered_sentences_list = pickle.load(file)
     else:
         ordered_sentences_list = order_embeds_in_list(articles_similarity, articles)
         debug_logger('ordered_sentences_list', ordered_sentences_list)
