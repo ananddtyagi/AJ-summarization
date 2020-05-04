@@ -38,6 +38,21 @@ def clean(articles):
     stop_words = set(stopwords.words('english'))
 
     cleaned_articles = []
+<<<<<<< HEAD
+    for article in articles:
+        for sentence in article:
+            tokens = word_tokenize(sentence)
+            tokens = [w.lower() for w in tokens] #lowercase all tokens in each sentence
+            tokens = [w for w in tokens if not w in stop_words] #remove stop words
+
+            sentence = " ".join(tokens)
+            sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
+            sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces, I (Anand) added this step
+            cleaned_sentences[-1].append(sentence)
+
+    return cleaned_articles
+
+=======
 
 
     for article in articles:
@@ -56,9 +71,16 @@ def clean(articles):
 
     return cleaned_articles
 
+>>>>>>> c8a9740c2e39803b3b8c18b3281d825d09a06e10
 def sentence_to_embeddings(articles):
     embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+    embeddings = []
+    for article in articles:
+        for sentence in article:
 
+<<<<<<< HEAD
+            embeddings[-1].append(embed(sentences))
+=======
     embeddings = []
     single_embedding = []
     i = 0
@@ -68,10 +90,11 @@ def sentence_to_embeddings(articles):
         embeddings.append(embed(sentences))
         print('Embedding ', i)
         i+=1
+>>>>>>> c8a9740c2e39803b3b8c18b3281d825d09a06e10
 
     return embeddings
 
-def similarity_score(embeddings):
+def similarity_score(embeddings): #make into 2d
     from sklearn.metrics.pairwise import cosine_similarity
 
     articles_similarity = []
@@ -93,7 +116,7 @@ def similarity_score(embeddings):
 
     return articles_similarity
 
-def order(scores, sentences):
+def order(scores, sentences): #make into 2d
     tup_scores = []
     for i, score in enumerate(scores):
         tup_scores.append((score, i))
@@ -105,6 +128,9 @@ def order(scores, sentences):
 
     return ordered
 
+<<<<<<< HEAD
+def summarization(sentences, summary_length): #make into 2d
+=======
 def order_embeds_in_list(score_list, article_list):
 
     ordered_list = []
@@ -120,6 +146,7 @@ def order_embeds_in_list(score_list, article_list):
     return ordered_list
 
 def summarization(sentences, summary_length):
+>>>>>>> c8a9740c2e39803b3b8c18b3281d825d09a06e10
 
     return ''.join(sentences[:summary_length])
 
@@ -163,6 +190,12 @@ def write_results_file(summary_list):
             "system": summary_list[i]
         }
 
+<<<<<<< HEAD
+    articles = extract()
+    # debug_logger('sentences', sentences)
+    cleaned_sentences = clean(articles)
+    debug_logger('cleaned_sentences', cleaned_sentences)
+=======
         final_list.append(obj)
 
     with open('data.txt', 'w') as outfile:
@@ -180,6 +213,7 @@ def main():
     cleaned_articles = clean(articles)
     debug_logger('cleaned_articles', cleaned_articles)
     print('sen2emb')
+>>>>>>> c8a9740c2e39803b3b8c18b3281d825d09a06e10
     embeddings = sentence_to_embeddings(cleaned_articles)
     debug_logger('embeddings', embeddings)
     print('simscore')
@@ -197,12 +231,18 @@ def main():
     print('getresults')
     summary_list = get_results(ordered_sentences_list, summary_length)
 
+<<<<<<< HEAD
+    summaries = summarization(ordered_sentences, summary_length)
+
+    return
+=======
     write_results_file(summary_list)
 
     # print(summary_list[0])
 
     # print(len(summary_list))
 
+>>>>>>> c8a9740c2e39803b3b8c18b3281d825d09a06e10
 
 main()
 
