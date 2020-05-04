@@ -4,7 +4,8 @@ import os
 import json
 import nltk
 import ast #for reading from debug file
-
+import sys
+import pickle
 # nltk.download('stopwords')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
 
@@ -15,7 +16,7 @@ import tensorflow_hub as hub
 from nltk import sent_tokenize, word_tokenize
 
 def extract():
-    file = open('./dev-stats.jsonl', "r")
+    file = open('./input_data/dev.jsonl', "r")
 
     articles = []
     i = 0
@@ -49,7 +50,7 @@ def clean(articles):
 
             sentence = " ".join(tokens)
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
-            sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces, I (Anand) added this step
+            sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
             cleaned_sentences.append(sentence)
 
         cleaned_articles.append(cleaned_sentences)
@@ -78,15 +79,29 @@ def similarity_score(embeddings):
 
     print("Before Similarity")
     i = 0
-    for embed in embeddings:
+    j = 0
+    for embeding in embeddings:
         similarity = []
-        for embedding_1 in embed:
-            similarity.append(0)
-            for embedding_2 in embed:
-                #MAKE THIS INTO A TRIANGLE
-                similarity[-1] += cosine_similarity([embedding_1, embedding_2])[0][1]
+        for i in range(len(embeding)):
+            similarity = [0]*len(embeding)
+            for j in range(i, len(embeding)):
 
-        print("Similarity ", i)
+                print('calculating similarity')
+                similarity[i] += cosine_similarity([embeding[i]], [embeding[j]])[0][0]
+                similarity[j] += cosine_similarity([embeding[i]], [embeding[j]])[0][0]
+
+                sys.stdout.write('\r')
+
+                sys.stdout.write('%d percent' % (j))
+                sys.stdout.flush()
+            print()
+
+        if j < i * 100 / len(embed):
+            j = i * 100 / len(embed) + 1
+            sys.stdout.write('\r')
+
+            sys.stdout.write('%d percent' % (j))
+            sys.stdout.flush()
         i+=1
 
         articles_similarity.append(similarity)
@@ -135,15 +150,14 @@ def get_results(ordered_sentences_list, length):
 
 def debug_logger(process, x):
     print(process)
-    file = open('output.txt', 'w')
-    file.seek(0)
-    file.write(str(x))
-    file.close()
+    with open('./logs/' + process + '.txt', 'wb') as file:
+        print(x)
+        pickle.dump(x, file)
     print('debug logged')
     return
 
 def write_results_file(summary_list):
-    file = open('./dev-stats.jsonl', "r")
+    file = open('./dev.jsonl', "r")
 
     #Take the answer list
     reference_list = []
@@ -165,29 +179,60 @@ def write_results_file(summary_list):
 
         final_list.append(obj)
 
-    with open('data.txt', 'w') as outfile:
+    with open('./output_data/data.txt', 'w') as outfile:
         json.dump(final_list, outfile)
 
     return
+
+
 
 def main():
     articles = []
 
     print('extract')
-    articles = extract()
-    debug_logger('articles', articles)
+    if os.path.exists('./logs/articles.txt'):
+        print('previously completed')
+        with open('./logs/articles.txt', 'rb') as file:
+            articles = pickle.load(file)
+    else:
+        articles = extract()
+        debug_logger('articles', articles)
+
     print('clean')
-    cleaned_articles = clean(articles)
-    debug_logger('cleaned_articles', cleaned_articles)
+    if os.path.exists('./logs/cleaned_articles.txt'):
+        print('previously completed')
+        with open('./logs/cleaned_articles.txt', 'rb') as file:
+            cleaned_articles = pickle.load(file)
+    else:
+        cleaned_articles = clean(articles)
+        debug_logger('cleaned_articles', cleaned_articles)
+
     print('sen2emb')
-    embeddings = sentence_to_embeddings(cleaned_articles)
-    debug_logger('embeddings', embeddings)
+    if os.path.exists('./logs/embeddings.txt'):
+        print('previously completed')
+        with open('./logs/embeddings.txt', 'rb') as file:
+            embeddings = pickle.load(file)
+    else:
+        embeddings = sentence_to_embeddings(cleaned_articles)
+        debug_logger('embeddings', embeddings)
+
     print('simscore')
-    articles_similarity = similarity_score(embeddings)
-    debug_logger('articles_similarity', articles_similarity)
+    if os.path.exists('./logs/articles_similarity.txt'):
+        print('previously completed')
+        with open('./logs/articles_similarity.txt', 'rb') as file:
+            articles_similarity = pickle.load(file)
+    else:
+        articles_similarity = similarity_score(embeddings)
+        debug_logger('articles_similarity', articles_similarity)
+
     print('orederembilist')
-    ordered_sentences_list = order_embeds_in_list(articles_similarity, articles)
-    debug_logger('ordered_sentences_list', ordered_sentences_list)
+    if os.path.exists('./logs/ordered_sentences_list.txt'):
+        print('previously completed')
+        with open('./logs/ordered_sentences_list.txt', 'r') as file:
+            ordered_sentences_list = ast.literal_eval(file.readline())
+    else:
+        ordered_sentences_list = order_embeds_in_list(articles_similarity, articles)
+        debug_logger('ordered_sentences_list', ordered_sentences_list)
 
     # file = open('output.txt','r')
     # for line in file:

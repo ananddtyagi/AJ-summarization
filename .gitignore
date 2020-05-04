@@ -139,5 +139,5 @@ cython_debug/
 
 # Do not include input files
 input_data/
-
+logs/
 data-baseline.txt
