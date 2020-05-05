@@ -18,23 +18,28 @@ import tensorflow_hub as hub
 #import jsonlines
 from nltk import sent_tokenize, word_tokenize
 
-def extract():
+def extract_articles():
     file = open('./input_data/dev.jsonl', "r")
 
     articles = []
-    i = 0
-    for line in file:
+
+    for i, line in enumerate(file):
         json_article = json.loads(line)
 
         sentences = sent_tokenize(json_article["text"]) #extract all sentences from article
         articles.append(sentences)
 
-        if i == 2:
-            break
+    return articles
 
-        i+=1
+def extract_sentences(articles):
+
+    articles = []
+
+    for i in trange(len(articles), desc='Tokenization Progress'):
+        articles.append(sent_tokenize(json_article["text"]))
 
     return articles
+
 
 def clean(articles):
     import re
@@ -82,12 +87,12 @@ def similarity_score(embeddings):
 
     print("Before Similarity")
 
-    data_tqdm = trange(len(embeddings)), desc="Data Progress")
+    data_tqdm = trange(len(embeddings), desc="Data Progress")
     for e in data_tqdm:
         data_tqdm.set_description("Data Progress (article %i)", e)
         similarity = []
         embedding = embeddings[e]
-        for i in trange(len(embeding)), desc='Article Progress'):
+        for i in trange(len(embeding), desc='Article Progress'):
             similarity = [0]*len(embeding)
 
             for j in range(i, len(embeding)):
@@ -146,7 +151,7 @@ def debug_logger(process, x):
     print('debug logged')
     return
 
-def write_results_file(summary_list):
+def write_results_file(summary_list): #added by Justin Chen
     file = open('./input_data/dev.jsonl', "r")
 
     #Take the answer list
@@ -179,14 +184,23 @@ def write_results_file(summary_list):
 def main():
     articles = []
 
-    print('extract')
-    if os.path.exists('./logs/articles.txt'):
+    print('extract articles')
+    if os.path.exists('./logs/extracted_articles.txt'):
         print('previously completed')
-        with open('./logs/articles.txt', 'rb') as file:
-            articles = pickle.load(file)
+        with open('./logs/extracted_articles.txt', 'rb') as file:
+            extracted_articles = pickle.load(file)
     else:
-        articles = extract()
-        debug_logger('articles', articles)
+        extracted_articles = extract_articles()
+        debug_logger('extracted_articles', extracted_articles)
+
+    print('extract sentences')
+    if os.path.exists('./logs/extracted_sentences.txt'):
+        print('previously completed')
+        with open('./logs/extracted_sentences.txt', 'rb') as file:
+            extracted_articles = pickle.load(file)
+    else:
+        extracted_sentences = extract_sentences()
+        debug_logger('extracted_sentences', extracted_sentences)
 
     print('clean')
     if os.path.exists('./logs/cleaned_articles.txt'):

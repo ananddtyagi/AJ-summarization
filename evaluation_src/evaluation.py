@@ -1,6 +1,7 @@
 import rouge_l
 import json
 from rouge import Rouge
+from tqdm import tqdm
 
 rouge = Rouge()
 
@@ -16,7 +17,7 @@ def read_input():
     #     json_article = json.loads(line)
 
     #     list_articles.append(json_article)
-    
+
     return list_articles
 
 def aggregate_scores(list_articles):
@@ -39,16 +40,12 @@ def aggregate_scores(list_articles):
         "f": 0
     }
 
-    i = 0
-    for obj in list_articles:
+
+    for i, obj in enumerate(tqdm(list_articles, total=len(list_articles))):
 
         reference_sum = obj["reference"]
         system_sum = obj["system"]
 
-
-
-        print(i)
-        i+=1
 
         try:
             result = rouge.get_scores(system_sum, reference_sum)[0]
