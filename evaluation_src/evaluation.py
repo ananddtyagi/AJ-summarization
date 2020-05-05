@@ -40,8 +40,9 @@ def aggregate_scores(list_articles):
         "f": 0
     }
 
-
-    for i, obj in enumerate(tqdm(list_articles, total=len(list_articles))):
+    len_article = len(list_articles)
+    t = tqdm(list_articles, total=len_article, desc = 'Eval Progress')
+    for i, obj in enumerate(t):
 
         reference_sum = obj["reference"]
         system_sum = obj["system"]
@@ -61,12 +62,14 @@ def aggregate_scores(list_articles):
             rouge_l["r"] += result["rouge-l"]["r"]
             rouge_l["p"] += result["rouge-l"]["p"]
             rouge_l["f"] += result["rouge-l"]["f"]
+
         except ValueError:
             h = 0
             #Do nothing
 
-    len_article = len(list_articles)
 
+
+    print("Final Scores")
     rouge_1["r"] = rouge_1["r"]/len_article
     rouge_1["p"] = rouge_1["p"]/len_article
     rouge_1["f"] = rouge_1["f"]/len_article
@@ -90,8 +93,16 @@ def aggregate_scores(list_articles):
 
 def main():
 
-    sys.setrecursionlimit(2500)
     list_articles = read_input()
+    max_ref = 0
+    max_sys = 0
+
+    for i in list_articles:
+        if len(i['reference']) > max_ref:
+            max_ref = len(i['reference'])
+        if len(i['system']) > max_sys:
+            max_sys = len(i['system'])
+    sys.setrecursionlimit(max_ref * max_sys + 10)
 
     # print(list_articles[107217])
 
