@@ -7,6 +7,7 @@ import ast #for reading from debug file
 import sys
 import pickle
 # from progress.bar import IncrementalBar
+from tqdm import tqdm
 from tqdm.auto import trange
 
 # nltk.download('stopwords')
@@ -23,22 +24,21 @@ def extract_articles():
 
     articles = []
 
-    for i, line in enumerate(file):
+    for i, line in enumerate(tqdm(file, total=108836, desc="Extraction Progress")):
         json_article = json.loads(line)
 
-        sentences = sent_tokenize(json_article["text"]) #extract all sentences from article
-        articles.append(sentences)
+        articles.append(json_article['text'])
 
     return articles
 
 def extract_sentences(articles):
 
-    articles = []
+    tokenized_articles = []
 
-    for i in trange(len(articles), desc='Tokenization Progress'):
-        articles.append(sent_tokenize(json_article["text"]))
+    for article in tqdm(articles, desc='Tokenization Progress'):
+        tokenized_articles.append(sent_tokenize(article))
 
-    return articles
+    return tokenized_articles
 
 
 def clean(articles):
@@ -49,7 +49,7 @@ def clean(articles):
     cleaned_articles = []
 
 
-    for article in articles:
+    for article in tqdm(articles, desc='Cleaning Progress'):
         cleaned_sentences = []
         for sentence in article:
             tokens = word_tokenize(sentence)
@@ -72,11 +72,8 @@ def sentence_to_embeddings(articles):
     single_embedding = []
     i = 0
 
-    print("Before embeding step")
-    for sentences in articles:
+    for sentences in tqdm(articles, desc='Embedding Progress'):
         embeddings.append(embed(sentences))
-        print('Embedding ', i)
-        i+=1
 
     return embeddings
 
@@ -85,19 +82,17 @@ def similarity_score(embeddings):
 
     articles_similarity = []
 
-    print("Before Similarity")
-
     data_tqdm = trange(len(embeddings), desc="Data Progress")
     for e in data_tqdm:
         data_tqdm.set_description("Data Progress (article %i)", e)
         similarity = []
         embedding = embeddings[e]
-        for i in trange(len(embeding), desc='Article Progress'):
-            similarity = [0]*len(embeding)
+        for i in trange(len(embedding), desc='Article Progress'):
+            similarity = [0]*len(embedding)
 
-            for j in range(i, len(embeding)):
-                similarity[i] += cosine_similarity([embeding[i]], [embeding[j]])[0][0]
-                similarity[j] += cosine_similarity([embeding[i]], [embeding[j]])[0][0]
+            for j in range(i, len(embedding)):
+                similarity[i] += cosine_similarity([embedding[i]], [embedding[j]])[0][0]
+                similarity[j] += cosine_similarity([embedding[i]], [embedding[j]])[0][0]
 
         articles_similarity.append(similarity)
 
@@ -146,7 +141,6 @@ def get_results(ordered_sentences_list, length):
 def debug_logger(process, x):
     print(process)
     with open('./logs/' + process + '.txt', 'wb') as file:
-        print(x)
         pickle.dump(x, file)
     print('debug logged')
     return
@@ -197,9 +191,9 @@ def main():
     if os.path.exists('./logs/extracted_sentences.txt'):
         print('previously completed')
         with open('./logs/extracted_sentences.txt', 'rb') as file:
-            extracted_articles = pickle.load(file)
+            extracted_sentences = pickle.load(file)
     else:
-        extracted_sentences = extract_sentences()
+        extracted_sentences = extract_sentences(extracted_articles)
         debug_logger('extracted_sentences', extracted_sentences)
 
     print('clean')
@@ -208,7 +202,7 @@ def main():
         with open('./logs/cleaned_articles.txt', 'rb') as file:
             cleaned_articles = pickle.load(file)
     else:
-        cleaned_articles = clean(articles)
+        cleaned_articles = clean(extracted_sentences)
         debug_logger('cleaned_articles', cleaned_articles)
 
     print('sen2emb')
