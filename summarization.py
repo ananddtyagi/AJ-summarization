@@ -4,6 +4,12 @@ import os
 import json
 import nltk
 import ast #for reading from debug file
+import sys
+import pickle
+import numpy
+# from progress.bar import IncrementalBar
+from tqdm import tqdm
+from tqdm.auto import trange
 
 # nltk.download('stopwords')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
@@ -14,23 +20,27 @@ import tensorflow_hub as hub
 #import jsonlines
 from nltk import sent_tokenize, word_tokenize
 
-def extract():
-    file = open('./dev-stats.jsonl', "r")
+def extract_articles():
+    file = open('./input_data/dev.jsonl', "r")
 
     articles = []
-    i = 0
-    for line in file:
+
+    for i, line in enumerate(tqdm(file, total=108836, desc="Extraction Progress")):
         json_article = json.loads(line)
 
-        sentences = sent_tokenize(json_article["text"]) #extract all sentences from article
-        articles.append(sentences)
-
-        if i == 2:
-            break
-
-        i+=1
+        articles.append(json_article['text'])
 
     return articles
+
+def extract_sentences(articles):
+
+    tokenized_articles = []
+
+    for article in tqdm(articles, desc='Tokenization Progress'):
+        tokenized_articles.append(sent_tokenize(article))
+
+    return tokenized_articles
+
 
 def clean(articles):
     import re
@@ -40,17 +50,19 @@ def clean(articles):
     cleaned_articles = []
 
 
-    for article in articles:
+    for article in tqdm(articles, desc='Cleaning Progress'):
         cleaned_sentences = []
-        for sentence in article:
+        for i, sentence in enumerate(article):
             tokens = word_tokenize(sentence)
             tokens = [w.lower() for w in tokens] #lowercase all tokens in each sentence
             tokens = [w for w in tokens if not w in stop_words] #remove stop words
 
             sentence = " ".join(tokens)
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
-            sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces, I (Anand) added this step
+            sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
             cleaned_sentences.append(sentence)
+            # if i == 50: #only store first x sentences
+            #     break;
 
         cleaned_articles.append(cleaned_sentences)
 
@@ -59,15 +71,13 @@ def clean(articles):
 def sentence_to_embeddings(articles):
     embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
-    embeddings = []
-    single_embedding = []
-    i = 0
+    embeddings = [[numpy.zeros((500, 512))]]*len(articles)
+    print('embedding space allcoated')
+    # for i, _ in enumerate(tqdm(articles, desc='Initializing embeddings')):
+    #     embeddings[i] = numpy.zeros((len(_), 512))
 
-    print("Before embeding step")
-    for sentences in articles:
-        embeddings.append(embed(sentences))
-        print('Embedding ', i)
-        i+=1
+    for i, sentences in enumerate(tqdm(articles, desc='Embedding Progress')):
+        embeddings[i] = embed(sentences)
 
     return embeddings
 
@@ -76,18 +86,17 @@ def similarity_score(embeddings):
 
     articles_similarity = []
 
-    print("Before Similarity")
-    i = 0
-    for embed in embeddings:
+    data_tqdm = trange(len(embeddings), desc="Data Progress")
+    for e in data_tqdm:
+        data_tqdm.set_description("Data Progress (article %i)", e)
         similarity = []
-        for embedding_1 in embed:
-            similarity.append(0)
-            for embedding_2 in embed:
-                #MAKE THIS INTO A TRIANGLE
-                similarity[-1] += cosine_similarity([embedding_1, embedding_2])[0][1]
+        embedding = embeddings[e]
+        for i in trange(len(embedding), desc='Article Progress'):
+            similarity = [0]*len(embedding)
 
-        print("Similarity ", i)
-        i+=1
+            for j in range(i, len(embedding)):
+                similarity[i] += cosine_similarity([embedding[i]], [embedding[j]])[0][0]
+                similarity[j] += cosine_similarity([embedding[i]], [embedding[j]])[0][0]
 
         articles_similarity.append(similarity)
 
@@ -135,15 +144,13 @@ def get_results(ordered_sentences_list, length):
 
 def debug_logger(process, x):
     print(process)
-    file = open('output.txt', 'w')
-    file.seek(0)
-    file.write(str(x))
-    file.close()
+    with open('./logs/' + process + '.txt', 'wb') as file:
+        pickle.dump(x, file)
     print('debug logged')
     return
 
-def write_results_file(summary_list):
-    file = open('./dev-stats.jsonl', "r")
+def write_results_file(summary_list): #added by Justin Chen
+    file = open('./input_data/dev.jsonl', "r")
 
     #Take the answer list
     reference_list = []
@@ -165,29 +172,78 @@ def write_results_file(summary_list):
 
         final_list.append(obj)
 
-    with open('data.txt', 'w') as outfile:
+    with open('./output_data/data.txt', 'w') as outfile:
         json.dump(final_list, outfile)
 
     return
 
+
+
 def main():
     articles = []
 
-    print('extract')
-    articles = extract()
-    debug_logger('articles', articles)
+    print('extract articles')
+    if os.path.exists('./logs/extracted_articles.txt'):
+        print('previously completed')
+        with open('./logs/extracted_articles.txt', 'rb') as file:
+            extracted_articles = pickle.load(file)
+    else:
+        extracted_articles = extract_articles()
+        debug_logger('extracted_articles', extracted_articles)
+
+    print('extract sentences')
+    if os.path.exists('./logs/extracted_sentences.txt'):
+        print('previously completed')
+        with open('./logs/extracted_sentences.txt', 'rb') as file:
+            extracted_sentences = pickle.load(file)
+    else:
+        extracted_sentences = extract_sentences(extracted_articles)
+        debug_logger('extracted_sentences', extracted_sentences)
+
     print('clean')
-    cleaned_articles = clean(articles)
-    debug_logger('cleaned_articles', cleaned_articles)
+    if os.path.exists('./logs/cleaned_articles.txt'):
+        print('previously completed')
+        with open('./logs/cleaned_articles.txt', 'rb') as file:
+            cleaned_articles = pickle.load(file)
+            max = 0
+            avg = 0
+            for _ in extracted_sentences:
+                avg += len(_)
+                if max < len(_):
+                    max = len(_)
+            avg /= len(extracted_sentences)
+            print(avg)
+            print(max)
+    else:
+        cleaned_articles = clean(extracted_sentences)
+        debug_logger('cleaned_articles', cleaned_articles)
+
     print('sen2emb')
-    embeddings = sentence_to_embeddings(cleaned_articles)
-    debug_logger('embeddings', embeddings)
+    if os.path.exists('./logs/embeddings.txt'):
+        print('previously completed')
+        with open('./logs/embeddings.txt', 'rb') as file:
+            embeddings = pickle.load(file)
+    else:
+        embeddings = sentence_to_embeddings(cleaned_articles)
+        debug_logger('embeddings', embeddings)
+
     print('simscore')
-    articles_similarity = similarity_score(embeddings)
-    debug_logger('articles_similarity', articles_similarity)
+    if os.path.exists('./logs/articles_similarity.txt'):
+        print('previously completed')
+        with open('./logs/articles_similarity.txt', 'rb') as file:
+            articles_similarity = pickle.load(file)
+    else:
+        articles_similarity = similarity_score(embeddings)
+        debug_logger('articles_similarity', articles_similarity)
+
     print('orederembilist')
-    ordered_sentences_list = order_embeds_in_list(articles_similarity, articles)
-    debug_logger('ordered_sentences_list', ordered_sentences_list)
+    if os.path.exists('./logs/ordered_sentences_list.txt'):
+        print('previously completed')
+        with open('./logs/ordered_sentences_list.txt', 'rb') as file:
+            ordered_sentences_list = pickle.load(file)
+    else:
+        ordered_sentences_list = order_embeds_in_list(articles_similarity, articles)
+        debug_logger('ordered_sentences_list', ordered_sentences_list)
 
     # file = open('output.txt','r')
     # for line in file:

@@ -1,13 +1,14 @@
 import rouge_l
 import json
 from rouge import Rouge
+from tqdm import tqdm
 
 rouge = Rouge()
 
 import sys
 
 def read_input():
-    file = open("../data-baseline.txt", "r")
+    file = open("../output_data/data.txt", "r")
 
     list_articles = json.load(file)
 
@@ -16,8 +17,6 @@ def read_input():
     #     json_article = json.loads(line)
 
     #     list_articles.append(json_article)
-
-
 
     return list_articles
 
@@ -41,16 +40,13 @@ def aggregate_scores(list_articles):
         "f": 0
     }
 
-    i = 0
-    for obj in list_articles:
-        
+    len_article = len(list_articles)
+    t = tqdm(list_articles, total=len_article, desc = 'Eval Progress')
+    for i, obj in enumerate(t):
+
         reference_sum = obj["reference"]
         system_sum = obj["system"]
 
-        
-
-        print(i)
-        i+=1
 
         try:
             result = rouge.get_scores(system_sum, reference_sum)[0]
@@ -66,12 +62,14 @@ def aggregate_scores(list_articles):
             rouge_l["r"] += result["rouge-l"]["r"]
             rouge_l["p"] += result["rouge-l"]["p"]
             rouge_l["f"] += result["rouge-l"]["f"]
+
         except ValueError:
             h = 0
             #Do nothing
 
-    len_article = len(list_articles)
 
+
+    print("Final Scores")
     rouge_1["r"] = rouge_1["r"]/len_article
     rouge_1["p"] = rouge_1["p"]/len_article
     rouge_1["f"] = rouge_1["f"]/len_article
@@ -83,7 +81,7 @@ def aggregate_scores(list_articles):
     rouge_l["r"] = rouge_l["r"]/len_article
     rouge_l["p"] = rouge_l["p"]/len_article
     rouge_l["f"] = rouge_l["f"]/len_article
-    
+
     print("Rouge-1")
     print(rouge_1)
     print("\n")
@@ -95,8 +93,16 @@ def aggregate_scores(list_articles):
 
 def main():
 
-    sys.setrecursionlimit(2500)
     list_articles = read_input()
+    max_ref = 0
+    max_sys = 0
+
+    for i in list_articles:
+        if len(i['reference']) > max_ref:
+            max_ref = len(i['reference'])
+        if len(i['system']) > max_sys:
+            max_sys = len(i['system'])
+    sys.setrecursionlimit(max_ref * max_sys + 10)
 
     # print(list_articles[107217])
 
