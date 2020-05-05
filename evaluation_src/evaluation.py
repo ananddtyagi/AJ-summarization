@@ -4,6 +4,8 @@ from rouge import Rouge
 
 rouge = Rouge()
 
+import sys
+
 def read_input():
     file = open("../output_data/data.txt", "r")
 
@@ -14,9 +16,7 @@ def read_input():
     #     json_article = json.loads(line)
 
     #     list_articles.append(json_article)
-
-
-
+    
     return list_articles
 
 def aggregate_scores(list_articles):
@@ -39,25 +39,34 @@ def aggregate_scores(list_articles):
         "f": 0
     }
 
+    i = 0
     for obj in list_articles:
 
         reference_sum = obj["reference"]
         system_sum = obj["system"]
 
-        #System first, then reference
-        result = rouge.get_scores(system_sum, reference_sum)[0]
 
-        rouge_1["r"] += result["rouge-1"]["r"]
-        rouge_1["p"] += result["rouge-1"]["p"]
-        rouge_1["f"] += result["rouge-1"]["f"]
 
-        rouge_2["r"] += result["rouge-2"]["r"]
-        rouge_2["p"] += result["rouge-2"]["p"]
-        rouge_2["f"] += result["rouge-2"]["f"]
+        print(i)
+        i+=1
 
-        rouge_l["r"] += result["rouge-l"]["r"]
-        rouge_l["p"] += result["rouge-l"]["p"]
-        rouge_l["f"] += result["rouge-l"]["f"]
+        try:
+            result = rouge.get_scores(system_sum, reference_sum)[0]
+
+            rouge_1["r"] += result["rouge-1"]["r"]
+            rouge_1["p"] += result["rouge-1"]["p"]
+            rouge_1["f"] += result["rouge-1"]["f"]
+
+            rouge_2["r"] += result["rouge-2"]["r"]
+            rouge_2["p"] += result["rouge-2"]["p"]
+            rouge_2["f"] += result["rouge-2"]["f"]
+
+            rouge_l["r"] += result["rouge-l"]["r"]
+            rouge_l["p"] += result["rouge-l"]["p"]
+            rouge_l["f"] += result["rouge-l"]["f"]
+        except ValueError:
+            h = 0
+            #Do nothing
 
     len_article = len(list_articles)
 
@@ -83,7 +92,11 @@ def aggregate_scores(list_articles):
     print(rouge_l)
 
 def main():
+
+    sys.setrecursionlimit(2500)
     list_articles = read_input()
+
+    # print(list_articles[107217])
 
     aggregate_scores(list_articles)
 
