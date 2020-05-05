@@ -120,7 +120,7 @@ def write_results_file(summary_list): #added by Justin Chen
             "system": summary_list[i]
         }
 
-        final_list.append(obj)
+    final_list.append(obj)
 
     with open('./output_data/data.txt', 'w') as outfile:
         json.dump(final_list, outfile)
@@ -160,7 +160,7 @@ def main():
         debug_logger('cleaned_articles', cleaned_articles)
 
     summary_list = []
-    summary_file = open("./logs/summary.txt", 'r')
+    summary_file = open("./logs/summary.txt", 'w')
     # with open("./logs/summary.txt", 'r') as file:
     #     for i, line in enumerate(file):
     #         summary_list.append(line)
