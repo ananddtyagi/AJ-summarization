@@ -6,6 +6,7 @@ import nltk
 import ast #for reading from debug file
 import sys
 import pickle
+import numpy
 # from progress.bar import IncrementalBar
 from tqdm import tqdm
 from tqdm.auto import trange
@@ -51,7 +52,7 @@ def clean(articles):
 
     for article in tqdm(articles, desc='Cleaning Progress'):
         cleaned_sentences = []
-        for sentence in article:
+        for i, sentence in enumerate(article):
             tokens = word_tokenize(sentence)
             tokens = [w.lower() for w in tokens] #lowercase all tokens in each sentence
             tokens = [w for w in tokens if not w in stop_words] #remove stop words
@@ -60,6 +61,8 @@ def clean(articles):
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
             sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
             cleaned_sentences.append(sentence)
+            # if i == 50: #only store first x sentences
+            #     break;
 
         cleaned_articles.append(cleaned_sentences)
 
@@ -68,12 +71,13 @@ def clean(articles):
 def sentence_to_embeddings(articles):
     embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
-    embeddings = []
-    single_embedding = []
-    i = 0
+    embeddings = [[numpy.zeros((500, 512))]]*len(articles)
+    print('embedding space allcoated')
+    # for i, _ in enumerate(tqdm(articles, desc='Initializing embeddings')):
+    #     embeddings[i] = numpy.zeros((len(_), 512))
 
-    for sentences in tqdm(articles, desc='Embedding Progress'):
-        embeddings.append(embed(sentences))
+    for i, sentences in enumerate(tqdm(articles, desc='Embedding Progress')):
+        embeddings[i] = embed(sentences)
 
     return embeddings
 
@@ -201,6 +205,15 @@ def main():
         print('previously completed')
         with open('./logs/cleaned_articles.txt', 'rb') as file:
             cleaned_articles = pickle.load(file)
+            max = 0
+            avg = 0
+            for _ in extracted_sentences:
+                avg += len(_)
+                if max < len(_):
+                    max = len(_)
+            avg /= len(extracted_sentences)
+            print(avg)
+            print(max)
     else:
         cleaned_articles = clean(extracted_sentences)
         debug_logger('cleaned_articles', cleaned_articles)

@@ -141,3 +141,4 @@ cython_debug/
 input_data/
 logs/
 data-baseline.txt
+clean.txt
