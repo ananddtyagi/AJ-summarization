@@ -82,6 +82,7 @@ def similarity_score(embeddings):
     sparse_mat = sparse.csr_matrix(embeddings)
     similarities = cosine_similarity(sparse_mat)
     scores = numpy.sum(similarities, axis=1)
+    scores[0] += 20
     return scores
 
 def first(scores, sentences):
@@ -109,7 +110,6 @@ def write_results_file(summary_list): #added by Justin Chen
         json_article = json.loads(line)
         reference_summary = json_article["summary"] #extract all sentences from article
         reference_list.append(reference_summary)
-
     i = 0
 
     final_list = []
@@ -120,7 +120,7 @@ def write_results_file(summary_list): #added by Justin Chen
             "system": summary_list[i]
         }
 
-    final_list.append(obj)
+        final_list.append(obj)
 
     with open('./output_data/data.txt', 'w') as outfile:
         json.dump(final_list, outfile)
@@ -160,27 +160,37 @@ def main():
         debug_logger('cleaned_articles', cleaned_articles)
 
     summary_list = []
-    summary_file = open("./logs/summary.txt", 'w')
+    # summary_file = open("./logs/summary.txt", 'w')
     # with open("./logs/summary.txt", 'r') as file:
     #     for i, line in enumerate(file):
     #         summary_list.append(line)
     #         if i == 108000: #wherever it broke
     #             break;
+    # with open("./logs/summary.txt", 'r') as file:
+    #     for line in tqdm(file):
+    #         summary_list.append(line)
 
 
-    t = tqdm(extracted_articles, desc = 'Article 0:')
-    for i, article in enumerate(t):
+    print('summarize')
+    if os.path.exists('./logs/summary_list.txt'):
+        print('previously completed')
+        with open('./logs/summary_list.txt', 'rb') as file:
+             summary_list = pickle.load(file)
+    else:
+        t = tqdm(cleaned_articles, desc = 'Article 0:')
+        for i, article in enumerate(t):
 
-        # if i > 108000: #if it broke
-        t.set_description('Article %i' % i)
+            # if i > 108000: #if it broke
+            t.set_description('Article %i' % i)
 
-        embeddings = sentence_to_embeddings(article)
+            embeddings = sentence_to_embeddings(article)
 
-        sim_scores = similarity_score(embeddings)
+            sim_scores = similarity_score(embeddings)
 
-        summary_list.append(first(sim_scores, article))
-        summary_file.write(str(summary_list[-1]) + '\n')
+            summary_list.append(first(sim_scores, extracted_articles[i]))
+        debug_logger('summary_list', summary_list)
 
+    print(len(summary_list))
     write_results_file(summary_list)
 
 main()

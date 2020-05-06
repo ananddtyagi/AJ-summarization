@@ -8,7 +8,7 @@ rouge = Rouge()
 import sys
 
 def read_input():
-    file = open("../output_data/data-baseline.txt", "r")
+    file = open("../output_data/data.txt", "r")
 
     list_articles = json.load(file)
 
@@ -99,7 +99,7 @@ def aggregate_scores(list_articles):
     print("Rouge-l")
     print(rouge_l)
 
-def main():
+def evaluate():
 
     list_articles = read_input()
     max_ref = 0
@@ -116,4 +116,4 @@ def main():
 
     aggregate_scores(list_articles)
 
-main()
+evaluate()
