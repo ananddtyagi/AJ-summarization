@@ -77,12 +77,57 @@ def sentence_to_embeddings(article):
 
     return embeddings
 
+# Read the file with weights
+# Assume weights.txt has values of the vector seperated by commas
+# Example. 3,1,4,1,3,5 
+def read_weight_vector():
+    with open("./logs/weights.txt") as file:
+        vector = file.read().split(",")
+
+        for i in range(0, len(vector)):
+            vector[i] = float(vector[i])
+
+        return vector
+
+def factor_in_weights(weight_vector, sentence_score_list):
+    
+    #Add weight to first sentence
+    first_sentence_score = sentence_score_list[0] + weight_vector[0]
+
+    #Remove first sentence from list
+    sentence_score_list.pop(0)
+
+    #Add weight to other sentences
+    for i in range(0,len(sentence_score_list)):
+        index_per = i/len(sentence_score_list)
+
+        if(index_per >= 0 and index_per < 0.1):
+            # 0-10
+            sentence_score_list[i] += weight_vector[1]
+        elif(index_per >= 0.1 and index_per < 0.2):
+            # 10-20
+            sentence_score_list[i] += weight_vector[2]
+        elif(index_per >= 0.2 and index_per < 0.8):
+            # 20-80
+            sentence_score_list[i] += weight_vector[3]
+        elif(index_per >= 0.8 and index_per < 0.9):
+            # 80-90
+            sentence_score_list[i] += weight_vector[4]
+        else:
+            # 90-100
+            sentence_score_list[i] += weight_vector[5]
+
+    # Append first sentence to score
+    sentence_score_list.insert(0, first_sentence_score)
+
+    return sentence_score_list
+
 def similarity_score(embeddings):
 
     sparse_mat = sparse.csr_matrix(embeddings)
     similarities = cosine_similarity(sparse_mat)
     scores = numpy.sum(similarities, axis=1)
-    scores[0] += 20
+    #scores[0] += 20
 
     #weight[i] * len(scores)
 
@@ -170,6 +215,9 @@ def main():
         with open('./logs/summary_list.txt', 'rb') as file:
              summary_list = pickle.load(file)
     else:
+        #Fetching weight vector
+        weight_vector = read_weight_vector()
+
         t = tqdm(cleaned_articles, desc = 'Article 0:')
         for i, article in enumerate(t):
             t.set_description('Article %i' % i)
@@ -177,6 +225,8 @@ def main():
             embeddings = sentence_to_embeddings(article) #THIS SHOULD BE A CLEANED ARTICLE
 
             sim_scores = similarity_score(embeddings)
+
+            sim_scores = factor_in_weights(weight_vector, sim_scores)
 
             summary_list.append(first(sim_scores, extracted_articles[i]))
         debug_logger('summary_list', summary_list)
