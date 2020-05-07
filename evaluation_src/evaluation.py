@@ -99,7 +99,7 @@ def aggregate_scores(list_articles):
     print("Rouge-l")
     print(rouge_l)
 
-def evaluate():
+def main():
 
     list_articles = read_input()
     max_ref = 0
@@ -116,4 +116,4 @@ def evaluate():
 
     aggregate_scores(list_articles)
 
-evaluate()
+main()

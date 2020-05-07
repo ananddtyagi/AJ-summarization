@@ -82,7 +82,7 @@ def similarity_score(embeddings):
     sparse_mat = sparse.csr_matrix(embeddings)
     similarities = cosine_similarity(sparse_mat)
     scores = numpy.sum(similarities, axis=1)
-    scores[0] += 20
+    scores[0] += .20*(len(scores))
     return scores
 
 def first(scores, sentences):
@@ -141,15 +141,6 @@ def main():
         extracted_articles = extract_articles()
         debug_logger('extracted_articles', extracted_articles)
 
-    # print('extract sentences')
-    # if os.path.exists('./logs/extracted_sentences.txt'):
-    #     print('previously completed')
-    #     with open('./logs/extracted_sentences.txt', 'rb') as file:
-    #         extracted_sentences = pickle.load(file)
-    # else:
-    #     extracted_sentences = extract_sentences(extracted_articles)
-    #     debug_logger('extracted_sentences', extracted_sentences)
-
     print('clean')
     if os.path.exists('./logs/cleaned_articles.txt'):
         print('previously completed')
@@ -160,16 +151,6 @@ def main():
         debug_logger('cleaned_articles', cleaned_articles)
 
     summary_list = []
-    # summary_file = open("./logs/summary.txt", 'w')
-    # with open("./logs/summary.txt", 'r') as file:
-    #     for i, line in enumerate(file):
-    #         summary_list.append(line)
-    #         if i == 108000: #wherever it broke
-    #             break;
-    # with open("./logs/summary.txt", 'r') as file:
-    #     for line in tqdm(file):
-    #         summary_list.append(line)
-
 
     print('summarize')
     if os.path.exists('./logs/summary_list.txt'):
@@ -180,7 +161,6 @@ def main():
         t = tqdm(cleaned_articles, desc = 'Article 0:')
         for i, article in enumerate(t):
 
-            # if i > 108000: #if it broke
             t.set_description('Article %i' % i)
 
             embeddings = sentence_to_embeddings(article)

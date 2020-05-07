@@ -172,8 +172,6 @@ def main():
     else:
         t = tqdm(cleaned_articles, desc = 'Article 0:')
         for i, article in enumerate(t):
-
-            # if i > 108000: #if it broke
             t.set_description('Article %i' % i)
 
             embeddings = sentence_to_embeddings(article) #THIS SHOULD BE A CLEANED ARTICLE

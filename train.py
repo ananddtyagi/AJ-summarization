@@ -9,6 +9,9 @@ import pickle
 import numpy
 from tqdm import tqdm
 from tqdm.auto import trange
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy import sparse
+
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
 
@@ -23,21 +26,24 @@ def extract_articles():
 
     articles = []
 
-    for i, line in enumerate(tqdm(file, total=108836, desc="Extraction Progress")):
+    for i, line in enumerate(tqdm(file, total=108836, desc="Article Extraction Progress")):
         json_article = json.loads(line)
 
         articles.append(sent_tokenize(json_article['text']))
 
     return articles
 
-def extract_sentences(articles):
+def extract_answers():
+    file = open('./input_data/dev.jsonl', "r")
 
-    tokenized_articles = []
+    answers = []
 
-    for article in tqdm(articles, desc='Tokenization Progress'):
-        tokenized_articles.append(sent_tokenize(article))
+    for i, line in enumerate(tqdm(file, total=108836, desc="Answer Extraction Progress")):
+        json_article = json.loads(line)
 
-    return tokenized_articles
+        answers.append(sent_tokenize(json_article['summary']))
+
+    return answers
 
 
 def clean(articles):
@@ -69,32 +75,43 @@ def clean(articles):
 
 def sentence_to_embeddings(articles):
 
-    embeddings = []
-    # for i, _ in enumerate(tqdm(articles, desc='Initializing embeddings')):
-    #     embeddings[i] = numpy.zeros((len(_), 512))
-
-    for i, sentences in enumerate(tqdm(articles, desc='Embedding Progress')):
-        embeddings.append(embed(sentences))
+    embeddings = embed(articles)
 
     return embeddings
 
+def weight_index_calc(embeddings):
 
-def weight_calc(embeddings):
+    sparse_mat = sparse.csr_matrix(embeddings)
+    similarities = cosine_similarity(sparse_mat)
+    answer_sim = similarities[-1][:-1] #do not include the answer similarity to itself
 
-    articles_similarity = []
-    scores = []
-    sparse_mat = []
-    similarities = []
-    for e in tqdm(embeddings, desc='Sim Score Calc'):
-        sparse_mat = sparse.csr_matrix(e)
-        similarities = cosine_similarity(sparse_mat)
-        scores = numpy.sum(similarities, axis=1)
-        scores[0] += 10
-        #ADD WEIGHTS TO HERE SOMEHOW
-        articles_similarity.append(scores)
+    closest_index = numpy.argmax(answer_sim)
 
-    return articles_similarity
+    percentile = int(closest_index / len(answer_sim))
 
+    weights = [0,0,0,0,0,0] #0, 0-10, 10-20, 20-80, 80-90, 90-100
+
+    if closest_index == 0: #first sentence
+        return 0
+    elif percentile < 0.10: #0-10 (excluding first sentence)
+        return 1
+    elif percentile < 0.20: #10-20
+        return 2
+    elif percentile < 0.80: #20-80
+        return 3
+    elif percentile < 0.90: #80-90
+        return 4
+    else: #90-100
+        return 5
+
+    return 0
+
+def debug_logger(process, x):
+    print(process)
+    with open('./logs/' + process + '.txt', 'wb') as file:
+        pickle.dump(x, file)
+    print('debug logged')
+    return
 
 def main():
 
@@ -107,14 +124,14 @@ def main():
         extracted_articles = extract_articles()
         debug_logger('extracted_articles', extracted_articles)
 
-    # print('extract sentences')
-    # if os.path.exists('./logs/extracted_sentences.txt'):
-    #     print('previously completed')
-    #     with open('./logs/extracted_sentences.txt', 'rb') as file:
-    #         extracted_sentences = pickle.load(file)
-    # else:
-    #     extracted_sentences = extract_sentences(extracted_articles)
-    #     debug_logger('extracted_sentences', extracted_sentences)
+    print('extract answers')
+    if os.path.exists('./logs/extracted_answers.txt'):
+        print('previously completed')
+        with open('./logs/extracted_answers.txt', 'rb') as file:
+            extracted_answers = pickle.load(file)
+    else:
+        extracted_answers = extract_answers()
+        debug_logger('extracted_answers', extracted_answers)
 
     print('clean')
     if os.path.exists('./logs/cleaned_articles.txt'):
@@ -125,39 +142,22 @@ def main():
         cleaned_articles = clean(extracted_articles)
         debug_logger('cleaned_articles', cleaned_articles)
 
-    summary_list = []
+    weights = [0, 0,0,0,0,0] #first sentence, 0-10 (not including the first sentence), 10-20, 20-80, 80-90, 90-100
 
+    t = tqdm(cleaned_articles, desc = 'Article 0:')
 
-    weights = [0,0,0,0,0] #0-10, 10-20, 20-80, 80-90, 90-100
+    for i, article in enumerate(t):
+        if i == 87000:
+            break;
+        t.set_description('Article %i' % i)
 
+        embeddings = sentence_to_embeddings(article + extracted_answers[i])
+        #last entry in embeddings is the embeddings of the answer for that article
+        weights[weight_index_calc(embeddings)] += 1
 
-    
+    weights = numpy.divide(weights, 8700)
+    debug_logger('weights', weights)
+    print(list(weights))
 
-    print('summarize')
-    if os.path.exists('./logs/summary_list.txt'):
-        print('previously completed')
-        with open('./logs/summary_list.txt', 'rb') as file:
-             summary_list = pickle.load(file)
-    else:
-        t = tqdm(extracted_articles, desc = 'Article 0:')
-
-
-        for i, article in enumerate(t):
-
-            # if i > 108000: #if it broke
-            t.set_description('Article %i' % i)
-
-            embeddings = sentence_to_embeddings(article)
-
-            sim_scores = similarity_score(embeddings)
-
-            summary_list.append(first(sim_scores, article))
-        debug_logger('summary_list', summary_list)
-
-    print(len(summary_list))
-    write_results_file(summary_list)
 
 main()
-
-
-
