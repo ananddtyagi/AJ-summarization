@@ -41,10 +41,10 @@ def aggregate_scores(list_articles):
     }
 
     len_article = len(list_articles)
-    t = tqdm(list_articles, total=len_article, desc = 'Eval Progress')
     skipped = 0
     total_used = 0
-    for i, obj in enumerate(t):
+
+    for i, obj in tqdm(enumerate(list_articles), desc = 'Scoring'):
 
         reference_sum = obj["reference"]
         system_sum = obj["system"]
@@ -66,7 +66,6 @@ def aggregate_scores(list_articles):
             rouge_l["f"] += result["rouge-l"]["f"]
 
             total_used += 1
-
         except ValueError:
             skipped += 1
             #Do nothing
@@ -105,7 +104,7 @@ def main():
     max_ref = 0
     max_sys = 0
 
-    for i in list_articles:
+    for _, i in tqdm(enumerate(list_articles)):
         if len(i['reference']) > max_ref:
             max_ref = len(i['reference'])
         if len(i['system']) > max_sys:

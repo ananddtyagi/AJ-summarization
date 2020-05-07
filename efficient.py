@@ -82,7 +82,7 @@ def similarity_score(embeddings):
     sparse_mat = sparse.csr_matrix(embeddings)
     similarities = cosine_similarity(sparse_mat)
     scores = numpy.sum(similarities, axis=1)
-    scores[0] += .20*(len(scores))
+    scores[0] += 0.265183908045977*(len(scores))
     return scores
 
 def first(scores, sentences):
