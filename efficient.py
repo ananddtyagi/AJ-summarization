@@ -22,8 +22,10 @@ import tensorflow_hub as hub
 from nltk import sent_tokenize, word_tokenize
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
+BIAS = 0.20
+
 def extract_articles():
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/test.jsonl', "r")
 
     articles = []
 
@@ -82,7 +84,7 @@ def similarity_score(embeddings):
     sparse_mat = sparse.csr_matrix(embeddings)
     similarities = cosine_similarity(sparse_mat)
     scores = numpy.sum(similarities, axis=1)
-    scores[0] += 0.265183908045977*(len(scores))
+    scores[0] += BIAS*(len(scores))
     return scores
 
 def first(scores, sentences):
@@ -101,7 +103,7 @@ def debug_logger(process, x):
     return
 
 def write_results_file(summary_list): #added by Justin Chen
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/test.jsonl', "r")
 
     #Take the answer list
     reference_list = []
@@ -110,7 +112,6 @@ def write_results_file(summary_list): #added by Justin Chen
         json_article = json.loads(line)
         reference_summary = json_article["summary"] #extract all sentences from article
         reference_list.append(reference_summary)
-    i = 0
 
     final_list = []
     for i in trange(len(summary_list), desc='Results File'):
@@ -153,24 +154,25 @@ def main():
     summary_list = []
 
     print('summarize')
-    if os.path.exists('./logs/summary_list.txt'):
-        print('previously completed')
-        with open('./logs/summary_list.txt', 'rb') as file:
-             summary_list = pickle.load(file)
-    else:
-        t = tqdm(cleaned_articles, desc = 'Article 0:')
-        for i, article in enumerate(t):
+    # if os.path.exists('./logs/summary_list.txt'):
+    #     print('previously completed')
+    #     with open('./logs/summary_list.txt', 'rb') as file:
+    #          summary_list = pickle.load(file)
+    # else:
+    t = tqdm(cleaned_articles, desc = 'Article 0:')
+    for i, article in enumerate(t):
 
-            t.set_description('Article %i' % i)
+        t.set_description('Article %i' % i)
 
-            embeddings = sentence_to_embeddings(article)
+        embeddings = sentence_to_embeddings(article)
 
-            sim_scores = similarity_score(embeddings)
+        sim_scores = similarity_score(embeddings)
 
-            summary_list.append(first(sim_scores, extracted_articles[i]))
-        debug_logger('summary_list', summary_list)
-
+        summary_list.append(first(sim_scores, extracted_articles[i]))
+    debug_logger('summary_list', summary_list)
+    print(len(cleaned_articles))
     print(len(summary_list))
+    print('BIAS: ',BIAS)
     write_results_file(summary_list)
 
 main()

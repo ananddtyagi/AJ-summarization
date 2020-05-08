@@ -87,7 +87,7 @@ def percentile_calc(embeddings):
 
     closest_index = numpy.argmax(answer_sim)
 
-    return (closest_index+1) / len(answer_sim) #return the percentile the gold standard answer is in
+    return closest_index / len(answer_sim) #return the percentile the gold standard answer is in
 
     # if closest_index == 0: #first sentence
     #     return 0
@@ -101,6 +101,9 @@ def percentile_calc(embeddings):
     #     return 4
     #
     # return 5 # > first 4%
+
+def weight_calc(percentile):
+    return
 
 def debug_logger(process, x):
     print(process)
@@ -157,8 +160,13 @@ def main():
 
         debug_logger('percentile', percentile)
 
-    # weights = numpy.divide(weights, 87000)
-    print(len(percentile))
-    
+
+    # # weights = numpy.divide(weights, 87000)
+    # NUM_PARAMS = 1
+    # weights = [0]*NUM_PARAMS
+    #
+    # for percent in percentile:
+
+
 
 main()

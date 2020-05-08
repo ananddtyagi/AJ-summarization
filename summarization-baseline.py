@@ -8,7 +8,7 @@ from tqdm import tqdm
 from nltk import sent_tokenize, word_tokenize
 
 def extract():
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/test.jsonl', "r")
 
     articles = []
     for i, line in enumerate(tqdm(file, total=108836)):
