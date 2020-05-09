@@ -23,7 +23,7 @@ from nltk import sent_tokenize, word_tokenize
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
 def extract_articles():
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/test.jsonl', "r")
 
     articles = []
 
@@ -87,26 +87,9 @@ def read_weight_vector():
     #     for i in range(0, len(vector)):
     #         vector[i] = float(vector[i])
     #     # return vector
-    return [0.2652413793103448, 0.12428735632183908, 0.1552528735632184, 0.3481034482758621, 0.04245977011494253, 0.06465517241379311]
+    return [0.2574, 0.11036667, 0.1598, 0.36198333, 0.044125 , 0.06633333]
 
 def factor_in_weights(weight_vector, sentence_score_list):
-
-    #Add weight to first sentence
-    sentence_score_list[0] += weight_vector[0]
-    #
-    # Remove first sentence from list
-    # sentence_score_list.pop(0)
-
-    #Add weight to other sentences
-    # for i in range(1,len(sentence_score_list)):
-    #     index_per = int((i+1/len(sentence_score_list))
-
-    #     if index_per < 0.04: #1-4
-    #         sentence_score_list[i] += weight_vector[1]
-    #     elif index_per < 0.07: #4-7
-    #         sentence_score_list[i] += weight_vector[2]
-    #     elif index_per < 0.1: #7-10
-    #         sentence_score_list[i] += weight_vector[3]
 
     # #Add weight to first sentence
     sentence_score_list[0] += (weight_vector[0] * len(sentence_score_list))
@@ -116,15 +99,14 @@ def factor_in_weights(weight_vector, sentence_score_list):
     n = len(sentence_score_list)
 
     for i in range(1,len(sentence_score_list)):
-        index_per = i/len(sentence_score_list)
-    
+        index_per = (i+1)/n
+
         if(index_per >= 0 and index_per < 0.1):
             # 0-10
             section_len = int(0.1*n)
 
             #Account for zero
             section_len = section_len if section_len != 0 else 1
-
             sentence_score_list[i] += (weight_vector[1] * n / section_len)
         elif(index_per >= 0.1 and index_per < 0.2):
             # 10-20
@@ -149,7 +131,7 @@ def factor_in_weights(weight_vector, sentence_score_list):
             section_len = int(1*n) - int(0.9*n)
             #Account for zero
             section_len = section_len if section_len != 0 else 1
-            sentence_score_list[i] += (weight_vector[5] * len(sentence_score_list) / section_len)
+            sentence_score_list[i] += (weight_vector[5] * n / section_len)
 
     return sentence_score_list
 
@@ -181,7 +163,7 @@ def debug_logger(process, x):
     return
 
 def write_results_file(summary_list): #added by Justin Chen
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/test.jsonl', "r")
 
     #Take the answer list
     reference_list = []
@@ -257,7 +239,7 @@ def main():
             t.set_description('Article %i' % i)
 
             # if i >= 87000:
-            embeddings = sentence_to_embeddings(article) #THIS SHOULD BE A CLEANED ARTICLE
+            embeddings = sentence_to_embeddings(article)
             #weights = numpy.multiply(weight_vector, len(article))
 
             sim_scores = similarity_score(embeddings)

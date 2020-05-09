@@ -22,7 +22,7 @@ import tensorflow_hub as hub
 from nltk import sent_tokenize, word_tokenize
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
-BIAS = 0.20
+BIAS = 0
 
 def extract_articles():
     file = open('./input_data/test.jsonl', "r")

@@ -20,28 +20,36 @@ import tensorflow_hub as hub
 
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
+MAX_SEN = 200000
+START = 200000
 
 def extract_articles():
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/train.jsonl', "r")
 
     articles = []
 
-    for i, line in enumerate(tqdm(file, total=108836, desc="Article Extraction Progress")):
-        json_article = json.loads(line)
+    for i, line in enumerate(tqdm(file, total=MAX_SEN+START, desc="Article Extraction Progress")):
+        if i >= START:
+            if i == MAX_SEN+START:
+                break;
+            json_article = json.loads(line)
 
-        articles.append(sent_tokenize(json_article['text']))
+            articles.append(sent_tokenize(json_article['text']))
 
     return articles
 
 def extract_answers():
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/train.jsonl', "r")
 
     answers = []
 
-    for i, line in enumerate(tqdm(file, total=108836, desc="Answer Extraction Progress")):
-        json_article = json.loads(line)
+    for i, line in enumerate(tqdm(file, total=MAX_SEN+START, desc="Answer Extraction Progress")):
+        if i >= START:
+            if i == MAX_SEN+START:
+                break;
+            json_article = json.loads(line)
 
-        answers.append(sent_tokenize(json_article['summary']))
+            answers.append(sent_tokenize(json_article['summary']))
 
     return answers
 
@@ -85,9 +93,12 @@ def weight_index_calc(embeddings):
     similarities = cosine_similarity(sparse_mat)
     answer_sim = similarities[-1][:-1] #do not include the answer similarity to itself
 
+    if len(answer_sim) == 0:
+        print('no answers')
+        return 0
     closest_index = numpy.argmax(answer_sim)
 
-    percentile = int(closest_index / len(answer_sim))
+    percentile = (closest_index+1) / len(answer_sim)
 
     weights = [0,0,0,0,0,0] #0, 0-10, 10-20, 20-80, 80-90, 90-100
 
@@ -108,7 +119,7 @@ def weight_index_calc(embeddings):
 
 def debug_logger(process, x):
     print(process)
-    with open('./logs/' + process + '.txt', 'wb') as file:
+    with open('./logs/train-logs/' + process + '.txt', 'wb') as file:
         pickle.dump(x, file)
     print('debug logged')
     return
@@ -116,46 +127,48 @@ def debug_logger(process, x):
 def main():
 
     print('extract articles')
-    if os.path.exists('./logs/extracted_articles.txt'):
+    if os.path.exists('./logs/train-logs/extracted_articles.txt'):
         print('previously completed')
-        with open('./logs/extracted_articles.txt', 'rb') as file:
+        with open('./logs/train-logs/extracted_articles.txt', 'rb') as file:
             extracted_articles = pickle.load(file)
     else:
         extracted_articles = extract_articles()
         debug_logger('extracted_articles', extracted_articles)
 
     print('extract answers')
-    if os.path.exists('./logs/extracted_answers.txt'):
+    if os.path.exists('./logs/train-logs/extracted_answers.txt'):
         print('previously completed')
-        with open('./logs/extracted_answers.txt', 'rb') as file:
+        with open('./logs/train-logs/extracted_answers.txt', 'rb') as file:
             extracted_answers = pickle.load(file)
     else:
         extracted_answers = extract_answers()
         debug_logger('extracted_answers', extracted_answers)
 
+
+    print(len(extracted_articles))
+    print(len(extracted_answers))
     print('clean')
-    if os.path.exists('./logs/cleaned_articles.txt'):
+    if os.path.exists('./logs/train-logs/cleaned_articles.txt'):
         print('previously completed')
-        with open('./logs/cleaned_articles.txt', 'rb') as file:
+        with open('./logs/train-logs/cleaned_articles.txt', 'rb') as file:
             cleaned_articles = pickle.load(file)
     else:
         cleaned_articles = clean(extracted_articles)
         debug_logger('cleaned_articles', cleaned_articles)
 
-    weights = [0, 0,0,0,0,0] #first sentence, 0-10 (not including the first sentence), 10-20, 20-80, 80-90, 90-100
+    weights = [0,0,0,0,0,0] #first sentence, 0-10 (not including the first sentence), 10-20, 20-80, 80-90, 90-100
 
     t = tqdm(cleaned_articles, desc = 'Article 0:')
 
     for i, article in enumerate(t):
-        if i == 87000:
-            break;
         t.set_description('Article %i' % i)
 
         embeddings = sentence_to_embeddings(article + extracted_answers[i])
         #last entry in embeddings is the embeddings of the answer for that article
         weights[weight_index_calc(embeddings)] += 1
-
-    weights = numpy.divide(weights, 8700)
+        if i % 40000 == 0:
+            print(i, " : ", list(weights))
+    weights = numpy.divide(weights, len(cleaned_articles))
     debug_logger('weights', weights)
     print(list(weights))
 

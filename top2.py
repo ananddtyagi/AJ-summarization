@@ -85,17 +85,19 @@ def similarity_score(embeddings):
     similarities = cosine_similarity(sparse_mat)
     scores = numpy.sum(similarities, axis=1)
     scores[0] += BIAS*(len(scores))
+    if len(scores) > 1:
+        scores[1] += 0.10*(len(scores))
     return scores
 
-def first2(scores, sentences):
+def first(scores, sentences):
     tup_scores = []
     for i, score in enumerate(scores):
         tup_scores.append((score, i))
 
     ordered_scores = sorted(tup_scores, reverse = True, key=lambda s: s[0]) #sorted in descending order by the score
-    if len(ordered_scores) > 1: #some only have one sentence total
-        return sentences[ordered_scores[0][1]] + sentences[ordered_scores[1][1]]
-    return sentences[ordered_scores[0][1]]
+    if len(ordered_scores) == 1:
+        return sentences[ordered_scores[0][1]]
+    return sentences[ordered_scores[0][1]] + sentences[ordered_scores[1][1]]
 
 def debug_logger(process, x):
     print(process)
@@ -170,7 +172,7 @@ def main():
 
         sim_scores = similarity_score(embeddings)
 
-        summary_list.append(first2(sim_scores, extracted_articles[i]))
+        summary_list.append(first(sim_scores, extracted_articles[i]))
     debug_logger('summary_list', summary_list)
     print(len(cleaned_articles))
     print(len(summary_list))
