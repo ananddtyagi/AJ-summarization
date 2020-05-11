@@ -87,7 +87,8 @@ def read_weight_vector():
     #     for i in range(0, len(vector)):
     #         vector[i] = float(vector[i])
     #     # return vector
-    return [0.2574, 0.11036667, 0.1598, 0.36198333, 0.044125 , 0.06633333]
+    return  [0.26143453, 0.12479167, 0.15540952, 0.35115834, 0.04300357,
+       0.06420476]  
 
 def factor_in_weights(weight_vector, sentence_score_list):
 
@@ -224,32 +225,32 @@ def main():
 
     summary_list = []
 
-    print('summarize')
-    if os.path.exists('./logs/summary_list.txt'):
-        print('previously completed')
-        with open('./logs/summary_list.txt', 'rb') as file:
-             summary_list = pickle.load(file)
-    else:
-        #Fetching weight vector
-        weight_vector = read_weight_vector()
+    # print('summarize')
+    # if os.path.exists('./logs/summary_list.txt'):
+    #     print('previously completed')
+    #     with open('./logs/summary_list.txt', 'rb') as file:
+    #          summary_list = pickle.load(file)
+    # else:
+    #     #Fetching weight vector
+    weight_vector = read_weight_vector()
 
-        print(weight_vector)
-        t = tqdm(cleaned_articles, desc = 'Article 0:')
-        for i, article in enumerate(t):
-            t.set_description('Article %i' % i)
+    print(weight_vector)
+    t = tqdm(cleaned_articles, desc = 'Article 0:')
+    for i, article in enumerate(t):
+        t.set_description('Article %i' % i)
 
-            # if i >= 87000:
-            embeddings = sentence_to_embeddings(article)
-            #weights = numpy.multiply(weight_vector, len(article))
+        # if i >= 87000:
+        embeddings = sentence_to_embeddings(article)
+        #weights = numpy.multiply(weight_vector, len(article))
 
-            sim_scores = similarity_score(embeddings)
+        sim_scores = similarity_score(embeddings)
 
-            sim_scores = factor_in_weights(weight_vector, sim_scores)
-            # sim_scores = similarity_score(embeddings, weight_vector)
+        sim_scores = factor_in_weights(weight_vector, sim_scores)
+        # sim_scores = similarity_score(embeddings, weight_vector)
 
-            summary_list.append(first(sim_scores, extracted_articles[i]))
+        summary_list.append(first(sim_scores, extracted_articles[i]))
 
-        debug_logger('summary_list', summary_list)
+    debug_logger('summary_list', summary_list)
 
     print(len(summary_list))
     write_results_file(summary_list)
