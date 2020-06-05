@@ -1,4 +1,4 @@
 
-python3 summarization.py
+python summarization.py
 cd ./evaluation_src
-python3 evaluation.py
+python evaluation.py
