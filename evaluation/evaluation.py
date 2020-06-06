@@ -8,7 +8,7 @@ rouge = Rouge()
 import sys
 
 def read_input():
-    file = open("../output_data/data.txt", "r")
+    file = open("../output_data/data-baseline.txt", "r")
 
     list_articles = json.load(file)
 
