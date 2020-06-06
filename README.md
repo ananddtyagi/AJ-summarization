@@ -46,8 +46,11 @@ After downloading and unzipping the data, make the directory ~/AJ-summarization/
 List of summarization strategies:
 
 `summarization-baseline.py` : Takes the first sentence of each article.
+
 `summarization.py` : Uses our modified TextRank to generate the summary.
+
 `first-bias.py` : First bias technique
+
 `weighted.py` : Statistical weighting strategy
 
 In the future, we plan to add a bash file that can run the desired strategies and evaluation in one command.
