@@ -30,14 +30,27 @@ A tool to generate summaries.
   pickle
 ```
 
+## Data
+
+To fully run this project you will need to individually obtain the data from [Cornell NEWSROOM](http://lil.nlp.cornell.edu/newsroom/download/index.html).
+After downloading and unzipping the data, make the directory ~/AJ-summarization/input_data and place the train, dev, and test files in that folder.
+
 ## Usage
 
 1. Make sure to be in virtual environment
-  - source ./venv/bin/activate  # sh, bash, ksh, or zsh
 2. cd to AJ-summarization
-3. python3 summarization.py
+3. `python3 [summarization strategy file]` (listed below)
 4. cd evaluation_src
 5. python3 evaluation.py
+
+List of summarization strategies:
+
+`summarization-baseline.py` : Takes the first sentence of each article.
+`summarization.py` : Uses our modified TextRank to generate the summary.
+`first-bias.py` : First bias technique
+`weighted.py` : Statistical weighting strategy
+
+In the future, we plan to add a bash file that can run the desired strategies and evaluation in one command.
 
 ## Contributing
 
