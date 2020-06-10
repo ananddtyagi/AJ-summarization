@@ -139,7 +139,7 @@ cython_debug/
 
 # Do not include input and output and other misc files
 input_data/
-
+output_data/
 logs/
 
 
