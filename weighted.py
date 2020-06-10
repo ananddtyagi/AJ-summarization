@@ -87,8 +87,7 @@ def read_weight_vector():
     #     for i in range(0, len(vector)):
     #         vector[i] = float(vector[i])
     #     # return vector
-    return  [0.26143453, 0.12479167, 0.15540952, 0.35115834, 0.04300357,
-       0.06420476]  
+    return  [0.26143453, 0.12479167, 0.15540952, 0.35115834, 0.04300357, 0.06420476]
 
 def factor_in_weights(weight_vector, sentence_score_list):
 
@@ -239,14 +238,11 @@ def main():
     for i, article in enumerate(t):
         t.set_description('Article %i' % i)
 
-        # if i >= 87000:
         embeddings = sentence_to_embeddings(article)
-        #weights = numpy.multiply(weight_vector, len(article))
 
         sim_scores = similarity_score(embeddings)
 
         sim_scores = factor_in_weights(weight_vector, sim_scores)
-        # sim_scores = similarity_score(embeddings, weight_vector)
 
         summary_list.append(first(sim_scores, extracted_articles[i]))
 

@@ -6,9 +6,10 @@ from tqdm import tqdm
 rouge = Rouge()
 
 import sys
+datafile = "../output_data/top2data.txt"
 
 def read_input():
-    file = open("../output_data/data-baseline.txt", "r")
+    file = open(datafile, "r")
 
     list_articles = json.load(file)
 
@@ -43,8 +44,9 @@ def aggregate_scores(list_articles):
     len_article = len(list_articles)
     skipped = 0
     total_used = 0
+    t = tqdm(list_articles, desc = 'Eval:')
 
-    for i, obj in tqdm(enumerate(list_articles), desc = 'Scoring'):
+    for i, obj in enumerate(t):
 
         reference_sum = obj["reference"]
         system_sum = obj["system"]
@@ -85,6 +87,9 @@ def aggregate_scores(list_articles):
     rouge_l["p"] = rouge_l["p"]/total_used
     rouge_l["f"] = rouge_l["f"]/total_used
 
+    print(datafile)
+    print("f1")
+    print("R1: ", rouge_1["f"] * 100, "R2: ", rouge_2["f"] * 100, "RL: ", rouge_l["f"] * 100)
     print("Skipped")
     print(skipped)
     print("Total Used")
@@ -104,13 +109,16 @@ def main():
     max_ref = 0
     max_sys = 0
 
-    for _, i in tqdm(enumerate(list_articles)):
+    nonevalues = 0
+
+    for _, i in enumerate(tqdm(list_articles)):
         if len(i['reference']) > max_ref:
             max_ref = len(i['reference'])
         if len(i['system']) > max_sys:
             max_sys = len(i['system'])
     sys.setrecursionlimit(max_ref * max_sys + 10)
 
+    print(nonevalues)
     # print(list_articles[107217])
 
     aggregate_scores(list_articles)

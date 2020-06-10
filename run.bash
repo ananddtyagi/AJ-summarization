@@ -1,4 +1,4 @@
 
-python summarization.py
-cd ./evaluation_src
+python top2weighted.py
+cd ./evaluation
 python evaluation.py
