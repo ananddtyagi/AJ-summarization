@@ -53,7 +53,6 @@ def clean(articles):
 
     cleaned_articles = []
 
-    file = open('clean.txt', 'w')
     for article in tqdm(articles, desc='Cleaning Progress'):
         cleaned_sentences = []
         for i, sentence in enumerate(article):
@@ -65,12 +64,9 @@ def clean(articles):
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
             sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
             cleaned_sentences.append(sentence)
-            # if i == 50: #only store first x sentences
-            #     break;
-        file.write(str(cleaned_sentences) + '\n')
+
         cleaned_articles.append(cleaned_sentences)
-    file.close()
-    print('clean saved')
+
     return cleaned_articles
 
 def sentence_to_embeddings(articles):

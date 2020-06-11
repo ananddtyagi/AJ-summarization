@@ -23,10 +23,7 @@ embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 input_data = '../input_data/train.jsonl'
 
 MAX_SEN = 200000
-START = 0
-
-
-
+START = 850000
 
 def extract_articles():
     file = open(input_data, "r")

@@ -11,6 +11,7 @@ from tqdm import tqdm
 from tqdm.auto import trange
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy import sparse
+
 # nltk.download('stopwords')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
 
@@ -22,7 +23,7 @@ from nltk import sent_tokenize, word_tokenize
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
 def extract_articles():
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/test.jsonl', "r")
 
     articles = []
 
@@ -50,7 +51,6 @@ def clean(articles):
 
     cleaned_articles = []
 
-    file = open('clean.txt', 'w')
     for article in tqdm(articles, desc='Cleaning Progress'):
         cleaned_sentences = []
         for i, sentence in enumerate(article):
@@ -62,56 +62,93 @@ def clean(articles):
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
             sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
             cleaned_sentences.append(sentence)
-            # if i == 50: #only store first x sentences
-            #     break;
-        file.write(str(cleaned_sentences) + '\n')
+
         cleaned_articles.append(cleaned_sentences)
-    file.close()
-    print('clean saved')
     return cleaned_articles
 
-def sentence_to_embeddings(articles):
+def sentence_to_embeddings(article):
 
-    embeddings = []
-    # for i, _ in enumerate(tqdm(articles, desc='Initializing embeddings')):
-    #     embeddings[i] = numpy.zeros((len(_), 512))
-
-    for i, sentences in enumerate(tqdm(articles, desc='Embedding Progress')):
-        embeddings.append(embed(sentences))
+    embeddings = embed(article)
 
     return embeddings
 
+# Read the file with weights
+# Assume weights.txt has values of the vector seperated by commas
+# Example. 3,1,4,1,3,5
+def read_weight_vector():
+    # with open("./logs/weights.txt") as file:
+    #     vector = file.read().split(",")
+    #
+    #     for i in range(0, len(vector)):
+    #         vector[i] = float(vector[i])
+    #     # return vector
+    return  [0.26143453, 0.12479167, 0.15540952, 0.35115834, 0.04300357, 0.06420476]
+
+def factor_in_weights(weight_vector, sentence_score_list):
+
+    # #Add weight to first sentence
+    sentence_score_list[0] += (weight_vector[0] * len(sentence_score_list))
+    #
+    # #Add weight to other sentences
+
+    n = len(sentence_score_list)
+
+    for i in range(1,len(sentence_score_list)):
+        index_per = (i+1)/n
+
+        if(index_per >= 0 and index_per < 0.1):
+            # 0-10
+            section_len = int(0.1*n)
+
+            #Account for zero
+            section_len = section_len if section_len != 0 else 1
+            sentence_score_list[i] += (weight_vector[1] * n / section_len)
+        elif(index_per >= 0.1 and index_per < 0.2):
+            # 10-20
+            section_len = int(0.2*n) - int(0.1*n)
+            #Account for zero
+            section_len = section_len if section_len != 0 else 1
+            sentence_score_list[i] += (weight_vector[2] * n / section_len)
+        elif(index_per >= 0.2 and index_per < 0.8):
+            # 20-80
+            section_len = int(0.8*n) - int(0.2*n)
+            #Account for zero
+            section_len = section_len if section_len != 0 else 1
+            sentence_score_list[i] += (weight_vector[3] * n / section_len)
+        elif(index_per >= 0.8 and index_per < 0.9):
+            # 80-90
+            section_len = int(0.9*n) - int(0.8*n)
+            #Account for zero
+            section_len = section_len if section_len != 0 else 1
+            sentence_score_list[i] += (weight_vector[4] * n / section_len)
+        else:
+            # 90-100
+            section_len = int(1*n) - int(0.9*n)
+            #Account for zero
+            section_len = section_len if section_len != 0 else 1
+            sentence_score_list[i] += (weight_vector[5] * n / section_len)
+
+    return sentence_score_list
 
 def similarity_score(embeddings):
 
-    articles_similarity = []
-    scores = []
-    sparse_mat = []
-    similarities = []
-    for e in tqdm(embeddings, desc='Sim Score Calc'):
-        sparse_mat = sparse.csr_matrix(e)
-        similarities = cosine_similarity(sparse_mat)
-        scores = numpy.sum(similarities, axis=1)
-        scores[0] += 10
+    sparse_mat = sparse.csr_matrix(embeddings)
+    similarities = cosine_similarity(sparse_mat)
 
-        articles_similarity.append(scores)
+    scores = numpy.sum(similarities, axis=1)
+    #scores[0] += 20
 
-    return articles_similarity
+    #weight[i] * len(scores)
 
+    return scores
 
-def first(batch_scores, batch_sentences):
+def first(scores, sentences):
+    tup_scores = []
+    for i, score in enumerate(scores):
+        tup_scores.append((score, i))
 
-    summaries = []
-    for i, scores in tqdm(enumerate(batch_scores)):
-
-        tup_scores = []
-        for j, score in enumerate(scores):
-            tup_scores.append((score, j))
-
-        ordered_scores = sorted(tup_scores, reverse = True, key=lambda s: s[0]) #sorted in descending order by the score
-
-        summaries.append(batch_sentences[i][ordered_scores[0][1]])
-    return summaries
+    ordered_scores = sorted(tup_scores, reverse = True, key=lambda s: s[0]) #sorted in descending order by the score
+    return sentences[ordered_scores[0][1]]
 
 def debug_logger(process, x):
     print(process)
@@ -121,26 +158,27 @@ def debug_logger(process, x):
     return
 
 def write_results_file(summary_list): #added by Justin Chen
-    file = open('./input_data/dev.jsonl', "r")
+    file = open('./input_data/test.jsonl', "r")
 
     #Take the answer list
     reference_list = []
 
-    for line in file:
+    for i, line in enumerate(file):
+        # if i >= 87000:
         json_article = json.loads(line)
         reference_summary = json_article["summary"] #extract all sentences from article
         reference_list.append(reference_summary)
-    i = 0
 
     final_list = []
     for i in trange(len(summary_list), desc='Results File'):
-
         obj = {
             "reference" : reference_list[i],
             "system": summary_list[i]
         }
 
         final_list.append(obj)
+
+    print(len(final_list))
 
     with open('./output_data/data.txt', 'w') as outfile:
         json.dump(final_list, outfile)
@@ -180,45 +218,30 @@ def main():
         debug_logger('cleaned_articles', cleaned_articles)
 
     summary_list = []
-    # summary_file = open("./logs/summary.txt", 'w')
-    # with open("./logs/summary.txt", 'r') as file:
-    #     for i, line in enumerate(file):
-    #         summary_list.append(line)
-    #         if i == 108000: #wherever it broke
-    #             break;
-    # with open("./logs/summary.txt", 'r') as file:
-    #     for line in tqdm(file):
-    #         summary_list.append(line)
 
+    # print('summarize')
+    # if os.path.exists('./logs/summary_list.txt'):
+    #     print('previously completed')
+    #     with open('./logs/summary_list.txt', 'rb') as file:
+    #          summary_list = pickle.load(file)
+    # else:
+    #     #Fetching weight vector
+    weight_vector = read_weight_vector()
 
-    print('summarize')
-    if os.path.exists('./logs/summary_list.txt'):
-        print('previously completed')
-        with open('./logs/summary_list.txt', 'rb') as file:
-             summary_list = pickle.load(file)
-    else:
-        t = tqdm(extracted_articles, desc = 'Article 0:')
+    print(weight_vector)
+    t = tqdm(cleaned_articles, desc = 'Article 0:')
+    for i, article in enumerate(t):
+        t.set_description('Article %i' % i)
 
-        batch_size = 10000
-        batch = []
-        for i, article in enumerate(t):
+        embeddings = sentence_to_embeddings(article)
 
-            # if i > 108000: #if it broke
-            t.set_description('Article %i' % i)
-            batch.append(article)
+        sim_scores = similarity_score(embeddings)
 
-            if i % batch_size == 0:
-                embeddings = sentence_to_embeddings(batch)
-                articles_similarity = similarity_score(embeddings)
-                summary_list += first(articles_similarity, batch)
-                print('Batch ', int(i / batch_size))
-                batch = []
-        if len(batch) > 0:
-            embeddings = sentence_to_embeddings(batch)
-            articles_similarity = similarity_score(embeddings)
-            summary_list += first(articles_similarity, batch)
+        sim_scores = factor_in_weights(weight_vector, sim_scores)
 
-        debug_logger('summary_list', summary_list)
+        summary_list.append(first(sim_scores, extracted_articles[i]))
+
+    debug_logger('summary_list', summary_list)
 
     print(len(summary_list))
     write_results_file(summary_list)

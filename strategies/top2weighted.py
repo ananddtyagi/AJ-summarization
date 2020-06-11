@@ -54,7 +54,6 @@ def clean(articles):
 
     cleaned_articles = []
 
-    file = open('clean.txt', 'w')
     for article in tqdm(articles, desc='Cleaning Progress'):
         cleaned_sentences = []
         for i, sentence in enumerate(article):
@@ -68,10 +67,7 @@ def clean(articles):
             cleaned_sentences.append(sentence)
             # if i == 50: #only store first x sentences
             #     break;
-        file.write(str(cleaned_sentences) + '\n')
         cleaned_articles.append(cleaned_sentences)
-    file.close()
-    print('clean saved')
     return cleaned_articles
 
 def sentence_to_embeddings(article):
@@ -200,6 +196,8 @@ def write_results_file(summary_list): #added by Justin Chen
 def main():
     if not os.path.isdir('./logs'):
         os.mkdir('./logs')
+    if not os.path.isdir('./logs/' + input_data_set):
+        os.mkdir('./logs/' + input_data_set)
 
     print('extract articles')
     if os.path.exists('./logs/'+input_data_set+'/extracted_articles.txt'):

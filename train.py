@@ -20,11 +20,16 @@ import tensorflow_hub as hub
 
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
+input_data = '../input_data/train.jsonl'
+
 MAX_SEN = 200000
-START = 650000
+START = 0
+
+
+
 
 def extract_articles():
-    file = open('./input_data/train.jsonl', "r")
+    file = open(input_data, "r")
 
     articles = []
 
@@ -35,11 +40,13 @@ def extract_articles():
             json_article = json.loads(line)
 
             articles.append(sent_tokenize(json_article['text']))
-
+            if len(articles[-1]) == 1: #if it only finds one sentence:
+                print(articles[-1])
+                articles[-1] == articles[-1].split('\n\n') #I found this to be one of the common cases where the sentence tokenizer would fail
     return articles
 
 def extract_answers():
-    file = open('./input_data/train.jsonl', "r")
+    file = open(input_data, "r")
 
     answers = []
 
@@ -72,8 +79,7 @@ def clean(articles):
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
             sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
             cleaned_sentences.append(sentence)
-            # if i == 50: #only store first x sentences
-            #     break;
+
         cleaned_articles.append(cleaned_sentences)
     return cleaned_articles
 
@@ -89,9 +95,9 @@ def weight_index_calc(embeddings):
     similarities = cosine_similarity(sparse_mat)
     answer_sim = similarities[-1][:-1] #do not include the answer similarity to itself
 
-    if len(answer_sim) == 0:
-        print('no answers')
+    if len(answer_sim) == 0: #one sentence article
         return 0
+
     closest_index = numpy.argmax(answer_sim)
 
     percentile = (closest_index+1) / len(answer_sim)
@@ -115,18 +121,22 @@ def weight_index_calc(embeddings):
 
 def debug_logger(process, x):
     print(process)
-    with open('./logs/train-logs/' + process + '.txt', 'wb') as file:
+    with open('../logs/train/' + process + '.txt', 'wb') as file:
         pickle.dump(x, file)
     print('debug logged')
     return
 
 def main():
 
-    print('extract articles')
+    if not os.path.isdir('../logs'):
+        os.mkdir('../logs')
+    if not os.path.isdir('../logs/train'):
+        os.mkdir('../logs/train')
 
-    if os.path.exists('./logs/train-logs/extracted_articles.txt'):
+    print('extract articles')
+    if os.path.exists('../logs/train/extracted_articles.txt'):
         print('previously completed')
-        with open('./logs/extracted_articles.txt', 'rb') as file:
+        with open('../logs/train/extracted_articles.txt', 'rb') as file:
             extracted_articles = pickle.load(file)
     else:
         extracted_articles = extract_articles()
@@ -134,22 +144,20 @@ def main():
 
 
     print('extract answers')
-    if os.path.exists('./logs/train-logs/extracted_answers.txt'):
+    if os.path.exists('../logs/train/extracted_answers.txt'):
         print('previously completed')
-        with open('./logs/train-logs/extracted_answers.txt', 'rb') as file:
+        with open('../logs/train/extracted_answers.txt', 'rb') as file:
             extracted_answers = pickle.load(file)
     else:
         extracted_answers = extract_answers()
         # debug_logger('extracted_answers', extracted_answers)
 
-
-    print(len(extracted_articles))
-    print(len(extracted_answers))
+    assert len(extracted_articles) == len(extracted_answers)
 
     print('clean')
-    if os.path.exists('./logs/train-logs/cleaned_articles.txt'):
+    if os.path.exists('../logs/train/cleaned_articles.txt'):
         print('previously completed')
-        with open('./logs/train-logs/cleaned_articles.txt', 'rb') as file:
+        with open('../logs/train/cleaned_articles.txt', 'rb') as file:
             cleaned_articles = pickle.load(file)
     else:
         cleaned_articles = clean(extracted_articles)
@@ -171,7 +179,7 @@ def main():
     weights = numpy.divide(weights, len(cleaned_articles))
     print(list(weights))
 
-    debug_logger('weights', weights)
     print(START)
+    print(START + MAX_SEN)
 
 main()
