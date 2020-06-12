@@ -23,7 +23,7 @@ from nltk import sent_tokenize, word_tokenize
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
 def extract_articles():
-    file = open('./input_data/test.jsonl', "r")
+    file = open('../input_data/test.jsonl', "r")
 
     articles = []
 
@@ -31,7 +31,8 @@ def extract_articles():
         json_article = json.loads(line)
 
         articles.append(sent_tokenize(json_article['text']))
-
+        # if len(articles[-1]) == 1: #if it only finds one sentence:
+        #     articles[-1] == articles[-1][0].split('\n\n') #I found this to be one of the common cases where the sentence tokenizer would fail
     return articles
 
 def extract_sentences(articles):
@@ -82,7 +83,7 @@ def read_weight_vector():
     #     for i in range(0, len(vector)):
     #         vector[i] = float(vector[i])
     #     # return vector
-    return  [0.26143453, 0.12479167, 0.15540952, 0.35115834, 0.04300357, 0.06420476]
+    return  [0.27708085, 0.12176854, 0.14755629, 0.34336134, 0.04223378, 0.06800022]
 
 def factor_in_weights(weight_vector, sentence_score_list):
 
@@ -152,13 +153,13 @@ def first(scores, sentences):
 
 def debug_logger(process, x):
     print(process)
-    with open('./logs/' + process + '.txt', 'wb') as file:
+    with open('../logs/test/' + process + '.txt', 'wb') as file:
         pickle.dump(x, file)
     print('debug logged')
     return
 
 def write_results_file(summary_list): #added by Justin Chen
-    file = open('./input_data/test.jsonl', "r")
+    file = open('../input_data/test.jsonl', "r")
 
     #Take the answer list
     reference_list = []
@@ -180,7 +181,7 @@ def write_results_file(summary_list): #added by Justin Chen
 
     print(len(final_list))
 
-    with open('./output_data/data.txt', 'w') as outfile:
+    with open('../output_data/weighted.txt', 'w') as outfile:
         json.dump(final_list, outfile)
 
     print('finished writing results')
@@ -191,9 +192,9 @@ def write_results_file(summary_list): #added by Justin Chen
 def main():
 
     print('extract articles')
-    if os.path.exists('./logs/extracted_articles.txt'):
+    if os.path.exists('../logs/test/extracted_articles.txt'):
         print('previously completed')
-        with open('./logs/extracted_articles.txt', 'rb') as file:
+        with open('../logs/test/extracted_articles.txt', 'rb') as file:
             extracted_articles = pickle.load(file)
     else:
         extracted_articles = extract_articles()
@@ -209,9 +210,9 @@ def main():
     #     debug_logger('extracted_sentences', extracted_sentences)
 
     print('clean')
-    if os.path.exists('./logs/cleaned_articles.txt'):
+    if os.path.exists('../logs/test/cleaned_articles.txt'):
         print('previously completed')
-        with open('./logs/cleaned_articles.txt', 'rb') as file:
+        with open('../logs/test/cleaned_articles.txt', 'rb') as file:
             cleaned_articles = pickle.load(file)
     else:
         cleaned_articles = clean(extracted_articles)

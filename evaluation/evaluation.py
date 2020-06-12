@@ -6,7 +6,7 @@ from tqdm import tqdm
 rouge = Rouge()
 
 import sys
-datafile = "../output_data/top2data.txt"
+datafile = "../output_data/weighted.txt"
 
 def read_input():
     file = open(datafile, "r")
