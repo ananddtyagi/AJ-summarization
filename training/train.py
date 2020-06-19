@@ -25,7 +25,7 @@ embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 input_data = '../input_data/train.jsonl'
 
 MAX_SEN = 200000
-START = 1050000
+START = 0
 
 def extract_articles():
     file = open(input_data, "r")
@@ -76,8 +76,9 @@ def clean(articles):
 
             sentence = " ".join(tokens)
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
-            sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
-            cleaned_sentences.append(sentence)
+            sentence = " ".join(sentence.split()) #the punctuation step adds spaces, to remove that without removing all spaces
+            if not (len(sentence) == 0 or sentence == ' '):
+                cleaned_sentences.append(sentence)
 
         cleaned_articles.append(cleaned_sentences)
     return cleaned_articles

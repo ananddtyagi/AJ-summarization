@@ -18,8 +18,8 @@ rouge = Rouge()
 input_data = '../input_data/train.jsonl'
 
 #change to sys input
-MAX_SEN = 100
-START = 0
+MAX_SEN = 1
+START = 39
 
 def extract_articles():
     file = open(input_data, "r")
@@ -49,8 +49,7 @@ def extract_answers():
                 break;
             json_article = json.loads(line)
 
-            answers.append(sent_tokenize(json_article['summary']))
-
+            answers.append(json_article['summary'])
     return answers
 
 
@@ -63,17 +62,21 @@ def clean(articles):
 
     for article in tqdm(articles, desc='Cleaning Progress'):
         cleaned_sentences = []
+        print(article)
         for i, sentence in enumerate(article):
             tokens = word_tokenize(sentence)
             tokens = [w.lower() for w in tokens] #lowercase all tokens in each sentence
             tokens = [w for w in tokens if not w in stop_words] #remove stop words
 
             sentence = " ".join(tokens)
-            print("1:", sentence)
+            print("1: ", sentence)
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
-            print("2:",     sentence)
-            sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
-            cleaned_sentences.append(sentence)
+
+            sentence = ' '.join(sentence.split()) #the punctuation step adds spaces, to remove that without removing all spaces
+            print("2: ", sentence)
+
+            if not (len(sentence) == 0 or sentence == ' '):
+                cleaned_sentences.append(sentence)
 
         cleaned_articles.append(cleaned_sentences)
     return cleaned_articles
@@ -85,6 +88,7 @@ def weight_index_calc(sentences):
     closest_index = 0
     print(sentences)
     for i, sentence in enumerate(sentences):
+        print("sen:",sentence)
         if rouge.get_scores(sentence, answer)[0]["rouge-l"]["f"] > max_score:
             closest_index = i
 
@@ -162,7 +166,7 @@ def main():
     for i, article in enumerate(t):
         t.set_description('Article %i' % i)
 
-        weights[weight_index_calc(cleaned_articles + extracted_answers[i])] += 1
+        weights[weight_index_calc(article + extracted_answers[i])] += 1
         if i % 40000 == 0:
             print(i, " : ", list(weights))
     weights = numpy.divide(weights, len(cleaned_articles))
