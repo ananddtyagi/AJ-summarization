@@ -69,7 +69,9 @@ def clean(articles):
             tokens = [w for w in tokens if not w in stop_words] #remove stop words
 
             sentence = " ".join(tokens)
+            print("1:", sentence)
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
+            print("2:",     sentence)
             sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
             cleaned_sentences.append(sentence)
 
@@ -81,6 +83,7 @@ def weight_index_calc(sentences):
     answer = sentences.pop(-1)
     max_score = 0
     closest_index = 0
+    print(sentences)
     for i, sentence in enumerate(sentences):
         if rouge.get_scores(sentence, answer)[0]["rouge-l"]["f"] > max_score:
             closest_index = i
@@ -159,7 +162,7 @@ def main():
     for i, article in enumerate(t):
         t.set_description('Article %i' % i)
 
-        weights[weight_index_calc(article + extracted_answers[i])] += 1
+        weights[weight_index_calc(cleaned_articles + extracted_answers[i])] += 1
         if i % 40000 == 0:
             print(i, " : ", list(weights))
     weights = numpy.divide(weights, len(cleaned_articles))
