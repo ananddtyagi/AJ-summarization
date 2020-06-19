@@ -18,7 +18,7 @@ rouge = Rouge()
 input_data = '../input_data/train.jsonl'
 
 #change to sys input
-MAX_SEN = 200000
+MAX_SEN = 100
 START = 0
 
 def extract_articles():
@@ -82,7 +82,7 @@ def weight_index_calc(sentences):
     max_score = 0
     closest_index = 0
     for i, sentence in enumerate(sentences):
-        if rouge.get_scores(sentence, answer)[0] > max_score:
+        if rouge.get_scores(sentence, answer)[0]["rouge-l"]["f"] > max_score:
             closest_index = i
 
     if len(sentences) == 0: #one sentence article
