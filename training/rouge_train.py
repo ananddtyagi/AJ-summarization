@@ -19,7 +19,7 @@ input_data = '../input_data/train.jsonl'
 
 #change to sys input
 MAX_SEN = 1
-START = 39
+START = 0
 
 def extract_articles():
     file = open(input_data, "r")
@@ -34,7 +34,7 @@ def extract_articles():
 
             articles.append(sent_tokenize(json_article['text']))
             if len(articles[-1]) == 1: #if it only finds one sentence:
-                print(articles[-1])
+
                 articles[-1] == articles[-1][0].split('\n\n') #I found this to be one of the common cases where the sentence tokenizer would fail
     return articles
 
@@ -49,7 +49,8 @@ def extract_answers():
                 break;
             json_article = json.loads(line)
 
-            answers.append(json_article['summary'])
+            answers.append(sent_tokenize(json_article['summary']))
+            print(answers)
     return answers
 
 
@@ -62,18 +63,16 @@ def clean(articles):
 
     for article in tqdm(articles, desc='Cleaning Progress'):
         cleaned_sentences = []
-        print(article)
+
         for i, sentence in enumerate(article):
             tokens = word_tokenize(sentence)
             tokens = [w.lower() for w in tokens] #lowercase all tokens in each sentence
             tokens = [w for w in tokens if not w in stop_words] #remove stop words
 
             sentence = " ".join(tokens)
-            print("1: ", sentence)
-            sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
 
+            sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
             sentence = ' '.join(sentence.split()) #the punctuation step adds spaces, to remove that without removing all spaces
-            print("2: ", sentence)
 
             if not (len(sentence) == 0 or sentence == ' '):
                 cleaned_sentences.append(sentence)
@@ -81,38 +80,42 @@ def clean(articles):
         cleaned_articles.append(cleaned_sentences)
     return cleaned_articles
 
-def weight_index_calc(sentences):
+def weight_index_calc(sentences, answer):
     #last index in sentences is the answer
-    answer = sentences.pop(-1)
     max_score = 0
+    curr_score = 0
     closest_index = 0
-    print(sentences)
-    for i, sentence in enumerate(sentences):
-        print("sen:",sentence)
-        if rouge.get_scores(sentence, answer)[0]["rouge-l"]["f"] > max_score:
-            closest_index = i
-
-    if len(sentences) == 0: #one sentence article
-        return 0
-
-    percentile = (closest_index+1) / len(sentences)
 
     weights = [0,0,0,0,0,0] #0, 0-10, 10-20, 20-80, 80-90, 90-100
 
-    if closest_index == 0: #first sentence
-        return 0
-    elif percentile < 0.10: #0-10 (excluding first sentence)
-        return 1
-    elif percentile < 0.20: #10-20
-        return 2
-    elif percentile < 0.80: #20-80
-        return 3
-    elif percentile < 0.90: #80-90
-        return 4
-    else: #90-100
-        return 5
+    for ans in answer:
 
-    return 0
+        for i, sentence in enumerate(sentences):
+            curr_score = rouge.get_scores(sentence, ans)[0]["rouge-l"]["f"]
+            if rouge.get_scores(sentence, ans)[0]["rouge-l"]["f"] > max_score:
+                closest_index = i
+                max_score = curr_score
+
+        if len(sentences) == 0: #one sentence article
+            weights[0] += 1
+        else:
+            percentile = (closest_index+1) / len(sentences)
+
+
+            if closest_index == 0: #first sentence
+                weights[0] += 1
+            elif percentile < 0.10: #0-10 (excluding first sentence)
+                weights[1] += 1
+            elif percentile < 0.20: #10-20
+                weights[2] += 1
+            elif percentile < 0.80: #20-80
+                weights[3] += 1
+            elif percentile < 0.90: #80-90
+                weights[4] += 1
+            else: #90-100
+                weights[5] += 1
+
+    return numpy.divide(weights, len(answer))
 
 def debug_logger(process, x):
     print(process)
@@ -155,6 +158,7 @@ def main():
             cleaned_articles = pickle.load(file)
     else:
         cleaned_articles = clean(extracted_articles)
+        cleaned_answers = clean(extracted_answers)
         # debug_logger('cleaned_articles', cleaned_articles)
 
     weights = [0,0,0,0,0,0] #first sentence, 0-10 (not including the first sentence), 10-20, 20-80, 80-90, 90-100
@@ -166,12 +170,12 @@ def main():
     for i, article in enumerate(t):
         t.set_description('Article %i' % i)
 
-        weights[weight_index_calc(article + extracted_answers[i])] += 1
+        weights = numpy.add(weights, weight_index_calc(article, cleaned_answers[i]))
         if i % 40000 == 0:
             print(i, " : ", list(weights))
     weights = numpy.divide(weights, len(cleaned_articles))
     print(list(weights))
-
+    assert numpy.isclose(numpy.sum(weights),1)
     print(START)
     print(START + MAX_SEN)
 
