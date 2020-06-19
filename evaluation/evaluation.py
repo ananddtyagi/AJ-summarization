@@ -118,8 +118,7 @@ def main():
             max_sys = len(i['system'])
     sys.setrecursionlimit(max_ref * max_sys + 10)
 
-    print(nonevalues)
-    # print(list_articles[107217])
+    print("Nonevalues: ", nonevalues)
 
     aggregate_scores(list_articles)
 

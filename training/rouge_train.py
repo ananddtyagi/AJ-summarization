@@ -1,6 +1,6 @@
 #code written by Anand Tyagi
 
-#uses google sentence embedding to measure similarity and uses the sum of all similarities as the popularity score
+#uses the rouge score between each sentence to evalute how relavent a setence is and uses the sum of that as the popularity score
 
 import os
 import json
@@ -13,19 +13,13 @@ from tqdm import tqdm
 from tqdm.auto import trange
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy import sparse
-
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
-
-import tensorflow as tf
-import tensorflow_hub as hub
-
-embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+from rouge import Rouge
 
 input_data = '../input_data/train.jsonl'
 
+#change to sys input
 MAX_SEN = 200000
-START = 1050000
+START = 0
 
 def extract_articles():
     file = open(input_data, "r")
@@ -82,24 +76,19 @@ def clean(articles):
         cleaned_articles.append(cleaned_sentences)
     return cleaned_articles
 
-def sentence_to_embeddings(articles):
+def weight_index_calc(sentences):
+    #last index in sentences is the answer
+    answer = sentences.pop(-1)
+    max_score = 0
+    closest_index = 0
+    for i, sentence in enumerate(sentences):
+        if rouge.get_scores(sentence, answer)[0] > max_score:
+            closest_index = i
 
-    embeddings = embed(articles)
-
-    return embeddings
-
-def weight_index_calc(embeddings):
-
-    sparse_mat = sparse.csr_matrix(embeddings)
-    similarities = cosine_similarity(sparse_mat)
-    answer_sim = similarities[-1][:-1] #do not include the answer similarity to itself
-
-    if len(answer_sim) == 0: #one sentence article
+    if len(sentences) == 0: #one sentence article
         return 0
 
-    closest_index = numpy.argmax(answer_sim)
-
-    percentile = (closest_index+1) / len(answer_sim)
+    percentile = (closest_index+1) / len(sentences)
 
     weights = [0,0,0,0,0,0] #0, 0-10, 10-20, 20-80, 80-90, 90-100
 
@@ -141,7 +130,6 @@ def main():
         extracted_articles = extract_articles()
         # debug_logger('extracted_articles', extracted_articles)
 
-
     print('extract answers')
     if os.path.exists('../logs/train/extracted_answers.txt'):
         print('previously completed')
@@ -164,15 +152,14 @@ def main():
 
     weights = [0,0,0,0,0,0] #first sentence, 0-10 (not including the first sentence), 10-20, 20-80, 80-90, 90-100
     print(len(cleaned_articles))
+    sys.setrecursionlimit(300 * 300 + 10)
 
     t = tqdm(cleaned_articles, desc = 'Article 0:')
 
     for i, article in enumerate(t):
         t.set_description('Article %i' % i)
 
-        embeddings = sentence_to_embeddings(article + extracted_answers[i])
-        #last entry in embeddings is the embeddings of the answer for that article
-        weights[weight_index_calc(embeddings)] += 1
+        weights[weight_index_calc(article + extracted_answers[i])] += 1
         if i % 40000 == 0:
             print(i, " : ", list(weights))
     weights = numpy.divide(weights, len(cleaned_articles))
