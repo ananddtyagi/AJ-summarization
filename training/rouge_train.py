@@ -14,7 +14,7 @@ from tqdm.auto import trange
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy import sparse
 from rouge import Rouge
-
+rouge = Rouge()
 input_data = '../input_data/train.jsonl'
 
 #change to sys input
