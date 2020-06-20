@@ -18,17 +18,17 @@ rouge = Rouge()
 input_data = '../input_data/train.jsonl'
 
 #change to sys input
-MAX_SEN = 1
-START = 0
+START = int(sys.argv[1])
+NUM_SEN = int(sys.argv[2])
 
 def extract_articles():
     file = open(input_data, "r")
 
     articles = []
 
-    for i, line in enumerate(tqdm(file, total=MAX_SEN+START, desc="Article Extraction Progress")):
+    for i, line in enumerate(tqdm(file, total=NUM_SEN+START, desc="Article Extraction Progress")):
         if i >= START:
-            if i == MAX_SEN+START:
+            if i == NUM_SEN+START:
                 break;
             json_article = json.loads(line)
 
@@ -43,14 +43,13 @@ def extract_answers():
 
     answers = []
 
-    for i, line in enumerate(tqdm(file, total=MAX_SEN+START, desc="Answer Extraction Progress")):
+    for i, line in enumerate(tqdm(file, total=NUM_SEN+START, desc="Answer Extraction Progress")):
         if i >= START:
-            if i == MAX_SEN+START:
+            if i == NUM_SEN+START:
                 break;
             json_article = json.loads(line)
 
             answers.append(sent_tokenize(json_article['summary']))
-            print(answers)
     return answers
 
 
@@ -115,7 +114,7 @@ def weight_index_calc(sentences, answer):
             else: #90-100
                 weights[5] += 1
 
-    return numpy.divide(weights, len(answer))
+    return numpy.divide(weights, len(answer)) if len(answer) != 0 else weights
 
 def debug_logger(process, x):
     print(process)
@@ -138,7 +137,7 @@ def main():
             extracted_articles = pickle.load(file)
     else:
         extracted_articles = extract_articles()
-        # debug_logger('extracted_articles', extracted_articles)
+        debug_logger('extracted_articles', extracted_articles)
 
     print('extract answers')
     if os.path.exists('../logs/train/extracted_answers.txt'):
@@ -147,19 +146,28 @@ def main():
             extracted_answers = pickle.load(file)
     else:
         extracted_answers = extract_answers()
-        # debug_logger('extracted_answers', extracted_answers)
+        debug_logger('extracted_answers', extracted_answers)
 
     assert len(extracted_articles) == len(extracted_answers)
 
-    print('clean')
+    print('clean articles')
     if os.path.exists('../logs/train/cleaned_articles.txt'):
         print('previously completed')
         with open('../logs/train/cleaned_articles.txt', 'rb') as file:
             cleaned_articles = pickle.load(file)
     else:
         cleaned_articles = clean(extracted_articles)
+        debug_logger('cleaned_articles', cleaned_articles)
+
+    print('clean answers')
+    if os.path.exists('../logs/train/cleaned_answers.txt'):
+        print('previously completed')
+        with open('../logs/train/cleaned_answers.txt', 'rb') as file:
+            cleaned_answers = pickle.load(file)
+    else:
         cleaned_answers = clean(extracted_answers)
-        # debug_logger('cleaned_articles', cleaned_articles)
+        debug_logger('cleaned_answers', cleaned_articles)
+
 
     weights = [0,0,0,0,0,0] #first sentence, 0-10 (not including the first sentence), 10-20, 20-80, 80-90, 90-100
     print(len(cleaned_articles))
@@ -174,9 +182,10 @@ def main():
         if i % 40000 == 0:
             print(i, " : ", list(weights))
     weights = numpy.divide(weights, len(cleaned_articles))
-    print(list(weights))
-    assert numpy.isclose(numpy.sum(weights),1)
+    print(START, "-", START+NUM_SEN , ": ", list(weights))
+    print(NUM_SEN, " articles: ", numpy.multiply(weights, NUM_SEN))
+    print("______________________________________")
     print(START)
-    print(START + MAX_SEN)
+    print(START + NUM_SEN)
 
 main()

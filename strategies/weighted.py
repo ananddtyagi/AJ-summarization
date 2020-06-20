@@ -22,6 +22,9 @@ import tensorflow_hub as hub
 from nltk import sent_tokenize, word_tokenize
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
+WEIGHTS = [0.38763997, 0.10907966, 0.12532573, 0.29371111, 0.03280987, 0.04989604]
+
+
 def extract_articles():
     file = open('../input_data/test.jsonl', "r")
 
@@ -83,7 +86,7 @@ def read_weight_vector():
     #     for i in range(0, len(vector)):
     #         vector[i] = float(vector[i])
     #     # return vector
-    return  [0.27708085, 0.12176854, 0.14755629, 0.34336134, 0.04223378, 0.06800022]
+    return WEIGHTS
 
 def factor_in_weights(weight_vector, sentence_score_list):
 
@@ -165,7 +168,7 @@ def write_results_file(summary_list): #added by Justin Chen
     reference_list = []
 
     for i, line in enumerate(file):
-        # if i >= 87000:
+
         json_article = json.loads(line)
         reference_summary = json_article["summary"] #extract all sentences from article
         reference_list.append(reference_summary)
