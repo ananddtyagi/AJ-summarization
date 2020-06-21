@@ -18,9 +18,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #removes tf debugging
 import tensorflow as tf
 import tensorflow_hub as hub
 
-WEIGHTS = [0.26143453, 0.12479167, 0.15540952, 0.35115834, 0.04300357, 0.06420476]
+WEIGHTS = [0.38763997, 0.10907966, 0.12532573, 0.29371111, 0.03280987, 0.04989604]
 input_data_set = 'test'
-input_data = './input_data/' +input_data_set+ '.jsonl'
+input_data = '../input_data/' +input_data_set+ '.jsonl'
 #import jsonlines
 from nltk import sent_tokenize, word_tokenize
 embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
@@ -65,8 +65,7 @@ def clean(articles):
             sentence = re.sub(r'[^\w]', ' ', sentence) #remove all punctuation
             sentence = sentence.replace('   ', ' ') #the punctuation step adds spaces, to remove that without removing all spaces
             cleaned_sentences.append(sentence)
-            # if i == 50: #only store first x sentences
-            #     break;
+            
         cleaned_articles.append(cleaned_sentences)
     return cleaned_articles
 
@@ -80,7 +79,7 @@ def sentence_to_embeddings(article):
 # Assume weights.txt has values of the vector seperated by commas
 # Example. 3,1,4,1,3,5
 def read_weight_vector():
-    # with open("./logs/weights.txt") as file:
+    # with open("../logs/weights.txt") as file:
     #     vector = file.read().split(",")
     #
     #     for i in range(0, len(vector)):
@@ -156,7 +155,7 @@ def top2(scores, sentences):
 def debug_logger(process, x):
     print(process)
 
-    with open('./logs/'+ input_data_set + '/' + process + '.txt', 'wb') as file:
+    with open('../logs/'+ input_data_set + '/' + process + '.txt', 'wb') as file:
         pickle.dump(x, file)
 
     print('debug logged')
@@ -185,7 +184,7 @@ def write_results_file(summary_list): #added by Justin Chen
 
     print(len(final_list))
 
-    with open('./output_data/top2data.txt', 'w') as outfile:
+    with open('../output_data/top2data.txt', 'w') as outfile:
         json.dump(final_list, outfile)
 
     print('finished writing results')
@@ -194,33 +193,33 @@ def write_results_file(summary_list): #added by Justin Chen
 
 
 def main():
-    if not os.path.isdir('./logs'):
-        os.mkdir('./logs')
-    if not os.path.isdir('./logs/' + input_data_set):
-        os.mkdir('./logs/' + input_data_set)
+    if not os.path.isdir('../logs'):
+        os.mkdir('../logs')
+    if not os.path.isdir('../logs/' + input_data_set):
+        os.mkdir('../logs/' + input_data_set)
 
     print('extract articles')
-    if os.path.exists('./logs/'+input_data_set+'/extracted_articles.txt'):
+    if os.path.exists('../logs/'+input_data_set+'/extracted_articles.txt'):
         print('previously completed')
-        with open('./logs/'+input_data_set+'/extracted_articles.txt', 'rb') as file:
+        with open('../logs/'+input_data_set+'/extracted_articles.txt', 'rb') as file:
             extracted_articles = pickle.load(file)
     else:
         extracted_articles = extract_articles()
         debug_logger('extracted_articles', extracted_articles)
 
     # print('extract sentences')
-    # if os.path.exists('./logs/extracted_sentences.txt'):
+    # if os.path.exists('../logs/extracted_sentences.txt'):
     #     print('previously completed')
-    #     with open('./logs/extracted_sentences.txt', 'rb') as file:
+    #     with open('../logs/extracted_sentences.txt', 'rb') as file:
     #         extracted_sentences = pickle.load(file)
     # else:
     #     extracted_sentences = extract_sentences(extracted_articles)
     #     debug_logger('extracted_sentences', extracted_sentences)
 
     print('clean')
-    if os.path.exists('./logs/'+input_data_set+'/cleaned_articles.txt'):
+    if os.path.exists('../logs/'+input_data_set+'/cleaned_articles.txt'):
         print('previously completed')
-        with open('./logs/'+input_data_set+'/cleaned_articles.txt', 'rb') as file:
+        with open('../logs/'+input_data_set+'/cleaned_articles.txt', 'rb') as file:
             cleaned_articles = pickle.load(file)
     else:
         cleaned_articles = clean(extracted_articles)
@@ -229,9 +228,9 @@ def main():
     summary_list = []
 
     # print('summarize')
-    # if os.path.exists('./logs/summary_list.txt'):
+    # if os.path.exists('../logs/summary_list.txt'):
     #     print('previously completed')
-    #     with open('./logs/summary_list.txt', 'rb') as file:
+    #     with open('../logs/summary_list.txt', 'rb') as file:
     #          summary_list = pickle.load(file)
     # else:
     #     #Fetching weight vector
